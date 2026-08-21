@@ -1,0 +1,6 @@
+openapi: 3.0.3
+info:
+  title: Team B - Ranking & Analytics Engine API
+  version: 1.0.0
+  description: API specifications for Team B ranking and analytics services.
+paths: {}

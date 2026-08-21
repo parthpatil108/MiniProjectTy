@@ -1,0 +1,19 @@
+{
+  "name": "@apnileap/team-c",
+  "version": "1.0.0",
+  "description": "Team C Data & Transaction Manager for ApniLeap",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev src/server.ts",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

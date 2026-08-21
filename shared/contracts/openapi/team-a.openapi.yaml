@@ -1,0 +1,6 @@
+openapi: 3.0.3
+info:
+  title: Team A - Eligibility Rule & Scheduling Engine API
+  version: 1.0.0
+  description: API specifications for Team A eligibility and scheduling services.
+paths: {}

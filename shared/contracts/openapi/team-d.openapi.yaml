@@ -1,0 +1,6 @@
+openapi: 3.0.3
+info:
+  title: Team D - Portal / BFF API
+  version: 1.0.0
+  description: API specifications for Team D UI Backend-For-Frontend services.
+paths: {}
