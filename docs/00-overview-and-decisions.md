@@ -1,5 +1,5 @@
 # 00 — Overview, Ownership, and Locked Decisions
-**Project:** ApniLeap — Rule-Based Placement Eligibility and Performance Analytics
+**Project:** Rule-Based Placement Eligibility and Performance Analytics
 **Scope of this package:** Planning/specification documents for AI coding agents. No application code is included here.
 **Project lead:** Parth (also Team C lead)
 

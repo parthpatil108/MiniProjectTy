@@ -1,7 +1,7 @@
 {
-  "name": "@apnileap/team-c",
+  "name": "@placement-platform/team-c",
   "version": "1.0.0",
-  "description": "Team C Data & Transaction Manager for ApniLeap",
+  "description": "Team C Data & Transaction Manager",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",

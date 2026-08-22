@@ -2,6 +2,9 @@
 
 These rules govern any AI coding agent working on this project, for any team. They are binding regardless of which files or documents an agent is directly looking at.
 
+> [!NOTE]
+> **Project Naming Note:** "ApniLeap" is **NOT** the name of this project. It is the name of the organization that provided these project assignments through our college. Do not use "ApniLeap" as the project name, title, or code package namespace.
+
 ## 6.1 Global rules
 
 1. **No architectural authority.** An agent may not change: the four-team boundary, data ownership (Team C owns all authoritative data), Team C's technology mandate (Node.js, no external DBMS), required algorithms named in the Project Doc or in `03-team-c-database-engine-design.md`, or any shared contract in `01-shared-contracts-and-data-model.md`. These are **[LOCKED]** or **[PROJECT DOC]** per the tagging in `00-overview-and-decisions.md`.
@@ -11,6 +14,7 @@ These rules govern any AI coding agent working on this project, for any team. Th
 5. **Every feature ships with the tests the relevant doc assigns it.** Doc 04 §4.4 for Team C; Project Doc's "minimum test scenarios" per team for A/B/D. A feature without its assigned tests is not done.
 6. **Idempotency and correlation IDs are non-negotiable on every cross-team endpoint** — an agent must not "simplify" these away even temporarily, since other teams' contract tests depend on them from day one (doc 07 §7.1).
 7. **Realistic scope.** Don't build generic frameworks, plugin systems, config DSLs, or abstractions beyond what the assigned feature needs. If a Project Doc feature contract can be built directly, build it directly.
+8. **Project Naming & Identity.** "ApniLeap" is NOT the name of this project; it is the name of the organization that provided these project assignments through our college. AI coding agents must not use "ApniLeap" as the project title or service package name.
 
 ## 6.2 Team C agent — additional rules
 

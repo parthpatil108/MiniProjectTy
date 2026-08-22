@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ApniLeap Common Envelope & Data Contracts
+  title: Common Envelope & Data Contracts
   version: 1.0.0
   description: Shared request/response envelopes and common schemas.
 paths: {}

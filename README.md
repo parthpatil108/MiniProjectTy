@@ -1,6 +1,6 @@
-# ApniLeap
+# Campus Placement Eligibility & Analytics Platform
 
-ApniLeap is a rule-driven campus placement eligibility and analytics platform, built by four independently-developed teams that integrate through versioned HTTP/JSON contracts, with Team C serving as the authoritative system of record.
+This is a rule-driven campus placement eligibility and analytics platform, built by four independently-developed teams that integrate through versioned HTTP/JSON contracts, with Team C serving as the authoritative system of record.
 
 ## Project Documentation
 

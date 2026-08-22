@@ -1,10 +1,10 @@
-# ApniLeap — Project Summary for AI Coding Agents
+# Project Summary for AI Coding Agents
 
 This is a condensed brief of a 10-document planning package (`00` through `09`). Give this file to any AI tool that needs to understand the project quickly. If that tool will actually **write code** for one of the four teams, also give it the full relevant docs listed at the end — this summary is for orientation, not a replacement for the detailed specs it's built on.
 
 ## What this project is
 
-ApniLeap: a rule-driven campus placement eligibility and analytics platform, built by four student teams that integrate through versioned HTTP/JSON contracts. Team C is the system of record; Teams A, B, D are independent services that call it and each other only through APIs. Timeline: 1–2 months. This is an academic mini-project — assessed on real engineering artefacts (working code, tests, benchmarks), not just a working demo screen.
+Project overview: a rule-driven campus placement eligibility and analytics platform, built by four student teams that integrate through versioned HTTP/JSON contracts. Team C is the system of record; Teams A, B, D are independent services that call it and each other only through APIs. Timeline: 1–2 months. This is an academic mini-project — assessed on real engineering artefacts (working code, tests, benchmarks), not just a working demo screen.
 
 ## Team boundaries (fixed, not changeable by any agent)
 
