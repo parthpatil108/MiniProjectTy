@@ -1,6 +1,283 @@
 openapi: 3.0.3
 info:
-  title: Team A - Eligibility Rule & Scheduling Engine API
+  title: Team A - Eligibility Rule & Interview Scheduling Engine API
   version: 1.0.0
-  description: API specifications for Team A eligibility and scheduling services.
-paths: {}
+  description: >
+    API contract for Team A, managing rule-chaining evaluation, interview-slot queues,
+    lease lock management, and algorithm runtime metrics.
+
+paths:
+  /api/v1/eligibility/requests:
+    post:
+      summary: Create an eligibility/scheduling request
+      operationId: createEligibilityRequest
+      description: Accepts request from Team C; idempotent by request_id.
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+        - $ref: './common-envelope.yaml#/components/headers/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './common-envelope.yaml#/components/schemas/EligibilityRequest'
+      responses:
+        '202':
+          description: Request enqueued/accepted for rule evaluation
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [request_id, queue_position, state]
+                    properties:
+                      request_id:
+                        type: string
+                        format: uuid
+                      queue_position:
+                        type: integer
+                      state:
+                        type: string
+                        example: QUEUED
+                      estimated_evaluation_time_ms:
+                        type: number
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '409':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/drives/{driveId}/queue:
+    get:
+      summary: Read ordered queue for a drive
+      operationId: getDriveQueue
+      parameters:
+        - name: driveId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Ordered queue and estimated evaluation times
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [drive_id, total_queued, queue]
+                    properties:
+                      drive_id:
+                        type: string
+                      total_queued:
+                        type: integer
+                      queue:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            request_id:
+                              type: string
+                            student_id:
+                              type: string
+                            priority:
+                              type: string
+                            position:
+                              type: integer
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/eligibility/requests/{requestId}:
+    get:
+      summary: Read eligibility request lifecycle state and decision result
+      operationId: getEligibilityRequestById
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Eligibility request and decision details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [request, decision]
+                    properties:
+                      request:
+                        $ref: './common-envelope.yaml#/components/schemas/EligibilityRequest'
+                      decision:
+                        $ref: './common-envelope.yaml#/components/schemas/EligibilityDecision'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /internal/v1/rules/evaluate:
+    post:
+      summary: Execute a configured rule-chaining strategy directly
+      operationId: evaluateRulesDirectly
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student, criteria, strategy]
+              properties:
+                student:
+                  $ref: './common-envelope.yaml#/components/schemas/Student'
+                criteria:
+                  $ref: './common-envelope.yaml#/components/schemas/DriveCriteria'
+                strategy:
+                  type: string
+                  enum: [SEQUENTIAL_AND, WEIGHTED_PRIORITY, DECISION_TREE]
+      responses:
+        '200':
+          description: Rule evaluation result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/EligibilityDecision'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /internal/v1/locks/acquire:
+    post:
+      summary: Reserve a simulated interview-slot lease
+      operationId: acquireSlotLock
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slot_id, holder_id]
+              properties:
+                slot_id:
+                  type: string
+                holder_id:
+                  type: string
+                lease_timeout_ms:
+                  type: integer
+                  default: 30000
+      responses:
+        '200':
+          description: Lock acquired or rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [lock_granted, lease_id]
+                    properties:
+                      lock_granted:
+                        type: boolean
+                      lease_id:
+                        type: string
+                        nullable: true
+                      conflict_reason:
+                        type: string
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '423':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /internal/v1/locks/{leaseId}:
+    delete:
+      summary: Release reservation after commit/cancel/timeout (idempotent)
+      operationId: releaseSlotLock
+      parameters:
+        - name: leaseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Lock released (or already released)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [released, lease_id]
+                    properties:
+                      released:
+                        type: boolean
+                      lease_id:
+                        type: string
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/metrics/eligibility:
+    get:
+      summary: Read algorithm and runtime metrics
+      operationId: getEligibilityMetrics
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Telemetry and execution metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_evaluated:
+                        type: integer
+                      p95_evaluation_ms:
+                        type: number
+                      active_queue_depth:
+                        type: integer
+                      deadlock_cycles_detected:
+                        type: integer
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+components:
+  responses:
+    ErrorResponse:
+      description: Standard Error Response
+      content:
+        application/json:
+          schema:
+            $ref: './common-envelope.yaml#/components/schemas/ErrorEnvelope'
