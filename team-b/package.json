@@ -1,0 +1,13 @@
+{
+  "name": "@placement-platform/team-b",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Team B Ranking and Shortlisting Analytics Engine",
+  "scripts": {
+    "demo:b1": "node src/demo/b1Demo.js",
+    "demo:b2": "node src/demo/b2Demo.js",
+    "test:b1": "node --test test/b1Graph.test.js",
+    "test:b2": "node --test test/b2Ranking.test.js",
+    "test": "node --test test/b1Graph.test.js test/b2Ranking.test.js"
+  }
+}
