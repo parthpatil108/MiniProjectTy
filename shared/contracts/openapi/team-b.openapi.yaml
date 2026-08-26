@@ -169,6 +169,78 @@ paths:
                   meta:
                     $ref: './common-envelope.yaml#/components/schemas/Meta'
 
+  /internal/v1/shortlist-index/{key}:
+    get:
+      summary: Read cached shortlist entry by candidate key
+      operationId: getShortlistIndexByKey
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Shortlist index lookup result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      rank:
+                        type: integer
+                      cached_shortlist:
+                        type: object
+                      lookup_time_us:
+                        type: number
+                      cache_hit:
+                        type: boolean
+                      index_statistics:
+                        type: object
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /internal/v1/shortlist-cache/invalidate:
+    post:
+      summary: Invalidate cached shortlist data for a candidate profile version
+      operationId: invalidateShortlistCache
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, profile_version]
+              properties:
+                key:
+                  type: string
+                profile_version:
+                  type: string
+      responses:
+        '200':
+          description: Shortlist cache invalidation result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/v1/analytics/analyse:
     post:
       summary: Run cohort and performance analysis
