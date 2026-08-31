@@ -4,10 +4,16 @@
   "private": true,
   "description": "Team B Ranking and Shortlisting Analytics Engine",
   "scripts": {
-    "demo:b1": "node src/demo/b1Demo.js",
-    "demo:b2": "node src/demo/b2Demo.js",
-    "test:b1": "node --test test/b1Graph.test.js",
-    "test:b2": "node --test test/b2Ranking.test.js",
-    "test": "node --test test/b1Graph.test.js test/b2Ranking.test.js"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "demo:b1": "npm run build && node dist/src/demo/b1Demo.js",
+    "demo:b2": "npm run build && node dist/src/demo/b2Demo.js",
+    "test:b1": "npm run build && node --test dist/test/b1Graph.test.js",
+    "test:b2": "npm run build && node --test dist/test/b2Ranking.test.js",
+    "test": "npm run build && node --test dist/test/b1Graph.test.js dist/test/b2Ranking.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.0.0"
   }
 }

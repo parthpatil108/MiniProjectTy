@@ -1,15 +1,9 @@
-const { dummyStudents, dummyDrives } = require('../data/dummyProfiles');
-const { ProfileRegistryService } = require('../services/profileRegistryService');
+import { dummyDrives, dummyStudents } from '../data/dummyProfiles';
+import { ProfileRegistryService } from '../services/profileRegistryService';
 
 const registry = new ProfileRegistryService();
-
-for (const student of dummyStudents) {
-  registry.addOrUpdateStudent(student);
-}
-
-for (const drive of dummyDrives) {
-  registry.addOrUpdateDrive(drive);
-}
+for (const student of dummyStudents) registry.addOrUpdateStudent(student);
+for (const drive of dummyDrives) registry.addOrUpdateDrive(drive);
 
 console.log('Team B B1: Skill/Requirement Graph Demo');
 console.log(JSON.stringify(registry.getGraphSummary(), null, 2));
