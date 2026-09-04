@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { HashIndex } from '../../src/storage/indexes/hashIndex.js';
 
 describe('M1 - Custom Hash Index Unit Tests', () => {

@@ -71,7 +71,9 @@ export class LockManager {
 
     if (isCompatible) {
       lock.grantedMode = mode;
-      lock.holders.clear();
+      if (mode === 'X') {
+        lock.holders.clear();
+      }
       lock.holders.add(txnId);
       return;
     }

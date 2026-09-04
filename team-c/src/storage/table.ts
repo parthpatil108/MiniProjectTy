@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { HashIndex } from './indexes/hashIndex.js';
 import { BPlusTree } from './indexes/bplustree.js';
@@ -303,6 +305,32 @@ export class StorageTable<T extends BaseRecord = BaseRecord> {
       if (va > vb) return order === 'asc' ? 1 : -1;
       return 0;
     });
+  }
+
+  public saveToFile(dataDir: string): void {
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    const filePath = path.join(dataDir, `${this.tableName}.json`);
+    const recordsArray = Array.from(this.records.values());
+    fs.writeFileSync(filePath, JSON.stringify(recordsArray, null, 2), 'utf-8');
+  }
+
+  public loadFromFile(dataDir: string): void {
+    const filePath = path.join(dataDir, `${this.tableName}.json`);
+    if (fs.existsSync(filePath)) {
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        if (content.trim()) {
+          const loadedRecords: T[] = JSON.parse(content);
+          for (const rec of loadedRecords) {
+            this.insert(rec);
+          }
+        }
+      } catch (err) {
+        // Ignore read/parse error on corrupt file
+      }
+    }
   }
 
   public clear(): void {

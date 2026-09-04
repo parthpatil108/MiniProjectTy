@@ -1,3 +1,4 @@
+import { describe, test, expect } from '@jest/globals';
 import { BPlusTree, BPlusInternalNode, BPlusLeafNode } from '../../src/storage/indexes/bplustree.js';
 
 describe('M1 - Custom B+Tree Index Unit Tests', () => {
@@ -40,32 +41,33 @@ describe('M1 - Custom B+Tree Index Unit Tests', () => {
   });
 
   test('forces a B+Tree underflow, borrowing, and node merging on delete', () => {
-    const tree = new BPlusTree<number, string>(4); // order 4 (min keys for leaf = 2, except root)
+    const tree = new BPlusTree<number, string>(3); // order 3 (max keys per node = 2, min keys = 1)
 
-    // Insert keys: 10, 20, 30, 40, 50, 60
-    for (let i = 10; i <= 60; i += 10) {
-      tree.insert(i, `rec${i}`);
-    }
+    // Insert keys: 10, 20, 30, 40
+    tree.insert(10, 'rec10');
+    tree.insert(20, 'rec20');
+    tree.insert(30, 'rec30');
+    tree.insert(40, 'rec40');
 
-    // Verify tree is split into internal nodes
+    // Verify tree split into internal root with leaves
     expect(tree.getRoot().isLeaf).toBe(false);
 
-    // Delete keys to trigger underflow & borrowing/merging
-    expect(tree.delete(60)).toBe(true);
-    expect(tree.search(60)).toBeUndefined();
-
-    // Delete 50 to force underflow and sibling borrowing or merging
-    expect(tree.delete(50)).toBe(true);
-    expect(tree.search(50)).toBeUndefined();
-
-    // Delete 40 to force merging nodes
+    // Delete 40 (leaves leaf with 30)
     expect(tree.delete(40)).toBe(true);
     expect(tree.search(40)).toBeUndefined();
 
-    // Verify remaining keys are intact and retrievable
+    // Delete 30 (causes underflow on leaf, triggers merge with left sibling)
+    expect(tree.delete(30)).toBe(true);
+    expect(tree.search(30)).toBeUndefined();
+
+    // Delete 20 (causes underflow and collapses root back to leaf)
+    expect(tree.delete(20)).toBe(true);
+    expect(tree.search(20)).toBeUndefined();
+
+    // Root collapsed back to single leaf containing only 10
+    expect(tree.getRoot().isLeaf).toBe(true);
+    expect(tree.getRoot().keys).toEqual([10]);
     expect(tree.search(10)).toEqual(['rec10']);
-    expect(tree.search(20)).toEqual(['rec20']);
-    expect(tree.search(30)).toEqual(['rec30']);
   });
 
   test('range query traverses linked leaves correctly', () => {

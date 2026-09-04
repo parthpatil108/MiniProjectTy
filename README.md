@@ -1,20 +1,35 @@
-# Campus Placement Eligibility & Analytics Platform
+# Placement Platform (System of Record)
 
-This is a rule-driven campus placement eligibility and analytics platform, built by four independently-developed teams that integrate through versioned HTTP/JSON contracts, with Team C serving as the authoritative system of record.
+This repository contains the multi-team Placement Eligibility and Analytics Platform. The system is built by four independent teams integrating over versioned HTTP/JSON APIs, with Team C acting as the authoritative system of record backed by a custom Node.js JSON-file database engine.
 
-## Project Documentation
+## Installation & Running Locally
 
-| Document                                                                                                                                 | Description                                          | Status / Note        |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | -------------------- |
-| [00-overview-and-decisions.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/00-overview-and-decisions.md)                     | Overview, Ownership, and Locked Decisions            | **Start Here**       |
-| [01-shared-contracts-and-data-model.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/01-shared-contracts-and-data-model.md)   | Shared Contracts, Envelopes & Data Model             | Shared Specification |
-| [02-team-c-architecture.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/02-team-c-architecture.md)                           | Team C Layered Module Architecture                   | Team C Spec          |
-| [03-team-c-database-engine-design.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/03-team-c-database-engine-design.md)       | Team C Custom JSON-File DBMS Engine Design           | Team C Spec          |
-| [04-team-c-implementation-plan.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/04-team-c-implementation-plan.md)             | Team C Build Sequence & Endpoint Specs               | Team C Plan          |
-| [05-teams-a-b-d-specifications.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/05-teams-a-b-d-specifications.md)             | Teams A, B, and D Specifications & Integration Rules | Integration Spec     |
-| [06-ai-agent-rules.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/06-ai-agent-rules.md)                                     | AI Agent Rules of Engagement                         | Governance           |
-| [07-testing-integration-and-workflow.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/07-testing-integration-and-workflow.md) | Test Strategy, Integration Gates & Git Workflow      | Workflow Spec        |
-| [08-requirements-traceability.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/08-requirements-traceability.md)               | Requirements Traceability Matrix                     | Verification         |
-| [09-stack.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/09-stack.md)                                                       | Technology Stack & Architectural Constraints         | Stack Spec           |
-| [PROJECT-SUMMARY.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/PROJECT-SUMMARY.md)                                         | Executive Summary & System Blueprint                 | Blueprint            |
-| [project-description.md](file:///c:/Users/HP/OneDrive/Desktop/MiniProjectTy/docs/project-description.md)                                 | Original Project Description & Requirements          | Reference Doc        |
+To install dependencies, build TypeScript sources, seed initial data, and start Team C locally:
+
+```bash
+cd team-c
+npm install
+npm run build
+npm run seed
+npm start
+```
+
+## Running Tests
+
+To run the complete test suite for Team C:
+
+```bash
+cd team-c
+npx jest
+```
+
+## Full Documentation
+
+For full project architecture, cross-team API specs, and database design, see the documentation in [docs/](docs/):
+- [00 — Overview and Decisions](docs/00-overview-and-decisions.md)
+- [01 — Shared Contracts and Data Model](docs/01-shared-contracts-and-data-model.md)
+- [02 — Team C Architecture](docs/02-team-c-architecture.md)
+- [03 — Team C Database Engine Design](docs/03-team-c-database-engine-design.md)
+- [04 — Team C Implementation Plan](docs/04-team-c-implementation-plan.md)
+- [06 — AI Agent Rules](docs/06-ai-agent-rules.md)
+- [09 — Stack](docs/09-stack.md)

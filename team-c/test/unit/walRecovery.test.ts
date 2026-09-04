@@ -1,8 +1,9 @@
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import { StorageManager } from '../../src/storage/storageManager.js';
 import { WalWriter } from '../../src/storage/wal/walWriter.js';
-import { WalRecovery } from '../../src/storage/wal/recovery.ts';
+import { WalRecovery } from '../../src/storage/wal/recovery.js';
 
 describe('M2 - WAL & Recovery Unit Tests', () => {
   const testDataDir = path.join(process.cwd(), 'data_test_wal');

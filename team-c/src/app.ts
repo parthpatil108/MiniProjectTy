@@ -4,6 +4,11 @@ import { errorHandlerMiddleware } from './api/middleware/errorEnvelope.js';
 import { studentsRouter } from './api/students.routes.js';
 import { drivesRouter } from './api/drives.routes.js';
 import { applicationsRouter } from './api/applications.routes.js';
+import { offersRouter } from './api/offers.routes.js';
+import { auditRouter } from './api/audit.routes.js';
+import { reportsRouter } from './api/reports.routes.js';
+import { recoveryRouter } from './api/recovery.routes.js';
+import { outboxRouter } from './api/outbox.routes.js';
 
 const app: Express = express();
 const startTime = Date.now();
@@ -21,6 +26,11 @@ app.get('/healthz', (req: Request, res: Response) => {
 app.use('/api/v1/students', studentsRouter);
 app.use('/api/v1/applications', applicationsRouter);
 app.use(drivesRouter);
+app.use(offersRouter);
+app.use(auditRouter);
+app.use(reportsRouter);
+app.use(recoveryRouter);
+app.use(outboxRouter);
 
 // Error Handling Middleware
 app.use(errorHandlerMiddleware);

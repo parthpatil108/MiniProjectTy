@@ -96,6 +96,21 @@ export class MasterDataService {
     }
   }
 
+  public async listStudents(): Promise<any[]> {
+    const result = this.getStorageManager().query('students', {});
+    return result.records.map((r) => ({
+      student_id: r.student_id,
+      name: r.name,
+      branch: r.branch,
+      cgpa: r.cgpa,
+      backlogs: r.backlogs,
+      attendance: r.attendance,
+      skill_tags: r.skill_tags,
+      version: r._version || 1,
+      created_at: r._createdAt,
+    }));
+  }
+
   public async createDrive(input: DriveInput): Promise<any> {
     if (!input.company || !input.criteria || input.seats === undefined || !input.package) {
       const err: AppError = new Error('Missing required drive fields (company, criteria, seats, package)');

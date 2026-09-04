@@ -1,17 +1,22 @@
+import fs from 'fs';
+import path from 'path';
 import { indexConfig } from '../config/indexConfig.js';
 import { StorageTable, BaseRecord, QueryOptions, QueryResult } from './table.js';
 
 export class StorageManager {
   private static instance: StorageManager | null = null;
   private tables: Map<string, StorageTable<any>> = new Map();
+  private dataDir: string;
 
-  constructor() {
+  constructor(dataDir: string = path.join(process.cwd(), 'data')) {
+    this.dataDir = dataDir;
     this.initTables();
+    this.loadAllTables();
   }
 
-  public static getInstance(): StorageManager {
+  public static getInstance(dataDir?: string): StorageManager {
     if (!StorageManager.instance) {
-      StorageManager.instance = new StorageManager();
+      StorageManager.instance = new StorageManager(dataDir);
     }
     return StorageManager.instance;
   }
@@ -33,6 +38,18 @@ export class StorageManager {
     }
   }
 
+  public loadAllTables(): void {
+    for (const table of this.tables.values()) {
+      table.loadFromFile(this.dataDir);
+    }
+  }
+
+  public saveAllTables(targetDir: string = this.dataDir): void {
+    for (const table of this.tables.values()) {
+      table.saveToFile(targetDir);
+    }
+  }
+
   public getTable<T extends BaseRecord = BaseRecord>(tableName: string): StorageTable<T> {
     const table = this.tables.get(tableName);
     if (!table) {
@@ -45,20 +62,26 @@ export class StorageManager {
   }
 
   public insert<T extends BaseRecord = BaseRecord>(tableName: string, record: T): T {
-    return this.getTable<T>(tableName).insert(record);
+    const result = this.getTable<T>(tableName).insert(record);
+    this.saveAllTables();
+    return result;
   }
 
   public update<T extends BaseRecord = BaseRecord>(
     tableName: string,
     id: string,
-    patch: Partial<T>,
+    patch: Record<string, any>,
     expectedVersion?: number
   ): T {
-    return this.getTable<T>(tableName).update(id, patch, expectedVersion);
+    const result = this.getTable<T>(tableName).update(id, patch as Partial<T>, expectedVersion);
+    this.saveAllTables();
+    return result;
   }
 
   public delete(tableName: string, id: string): boolean {
-    return this.getTable(tableName).delete(id);
+    const result = this.getTable(tableName).delete(id);
+    this.saveAllTables();
+    return result;
   }
 
   public getById<T extends BaseRecord = BaseRecord>(tableName: string, id: string): T | undefined {

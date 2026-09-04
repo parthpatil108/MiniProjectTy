@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { LockManager } from '../../src/concurrency/lockManager.js';
 import { WaitForGraph } from '../../src/concurrency/waitForGraph.js';
 
@@ -64,4 +65,30 @@ describe('M2 - Lock Manager & Deadlock Detection Unit Tests', () => {
     // Clean up T1 locks
     lockManager.releaseLocks('T1');
   });
+
+  test('multiple transactions can hold shared locks concurrently', async () => {
+    const table = 'drives';
+    const recId = 'DRV-101';
+
+    await lockManager.acquireLock('T1', table, recId, 'S');
+    await lockManager.acquireLock('T2', table, recId, 'S');
+
+    // Both T1 and T2 should be held concurrently
+    let t3Acquired = false;
+    const t3Promise = lockManager.acquireLock('T3', table, recId, 'X').then(() => {
+      t3Acquired = true;
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(t3Acquired).toBe(false); // T3 waits on both S holders
+
+    lockManager.releaseLocks('T1');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(t3Acquired).toBe(false); // Still waiting on T2
+
+    lockManager.releaseLocks('T2');
+    await t3Promise;
+    expect(t3Acquired).toBe(true); // Acquired after both T1 & T2 released
+  });
 });
+

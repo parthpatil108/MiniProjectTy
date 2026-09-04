@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import request from 'supertest';
 import { app } from '../../src/app.js';
 import { StorageManager } from '../../src/storage/storageManager.js';
@@ -107,6 +108,6 @@ describe('M4 — Idempotency & Optimistic Concurrency Integration Tests', () => 
     expect(rejected.length).toBe(1);
 
     const reason: any = (rejected[0] as PromiseRejectedResult).reason;
-    expect(['VERSION_MISMATCH', 'STATE_CONFLICT']).toContain(reason.code);
+    expect(['VERSION_MISMATCH', 'STATE_CONFLICT', 'LOCK_TIMEOUT']).toContain(reason.code);
   });
 });

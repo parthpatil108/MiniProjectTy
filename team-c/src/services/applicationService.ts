@@ -151,6 +151,14 @@ export class ApplicationService {
     idempotencyKey?: string,
     expectedVersion?: number
   ): Promise<any> {
+    const storageManager = this.getStorageManager();
+    const existingCheck = storageManager.getById('applications', applicationId);
+    if (!existingCheck) {
+      const err: AppError = new Error(`Application ${applicationId} not found`);
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+
     const txnManager = this.getTxnManager();
     const txn = txnManager.beginTransaction();
 
