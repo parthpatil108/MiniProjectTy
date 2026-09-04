@@ -273,6 +273,45 @@ paths:
                   meta:
                     $ref: './common-envelope.yaml#/components/schemas/Meta'
 
+  /api/v1/eligibility/decisions/{decisionId}:
+    get:
+      summary: Read decision details by decision ID
+      operationId: getEligibilityDecisionById
+      parameters:
+        - name: decisionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Eligibility decision details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/EligibilityDecision'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/stream/eligibility:
+    get:
+      summary: Server-Sent Events (SSE) live dashboard stream for eligibility transitions
+      operationId: streamEligibilityEvents
+      responses:
+        '200':
+          description: Event stream established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
 components:
   responses:
     ErrorResponse:
