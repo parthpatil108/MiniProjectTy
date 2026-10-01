@@ -1,6 +1,383 @@
 openapi: 3.0.3
 info:
-  title: Team D - Portal / BFF API
+  title: Team D - Placement Portal & Analytics Dashboard BFF API
   version: 1.0.0
-  description: API specifications for Team D UI Backend-For-Frontend services.
-paths: {}
+  description: >
+    API contract for Team D Backend-For-Frontend (BFF), providing authenticated session management,
+    role-based navigation, drive discovery, application proxying, dashboard aggregation, and SSE streaming.
+
+paths:
+  /api/v1/ui/session:
+    post:
+      summary: Authenticate user session and issue JWT token (D1)
+      operationId: createSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, role]
+              properties:
+                user_id:
+                  type: string
+                  example: STU-1001
+                role:
+                  type: string
+                  enum: [Student, Faculty_TPO, Placement_Admin]
+                  example: Student
+      responses:
+        '200':
+          description: Session created, JWT token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [token, role, user_id, expires_in]
+                    properties:
+                      token:
+                        type: string
+                      role:
+                        type: string
+                      user_id:
+                        type: string
+                      expires_in:
+                        type: integer
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+    delete:
+      summary: Destroy current session / logout (D1)
+      operationId: deleteSession
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+      responses:
+        '200':
+          description: Session invalidated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      logged_out:
+                        type: boolean
+                        example: true
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/ui/me:
+    get:
+      summary: Get current authenticated user profile and permissions (D1)
+      operationId: getCurrentUser
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [user_id, role, permissions]
+                    properties:
+                      user_id:
+                        type: string
+                      role:
+                        type: string
+                      permissions:
+                        type: array
+                        items:
+                          type: string
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/ui/drives:
+    get:
+      summary: Drive discovery & eligibility check experience (D2)
+      operationId: getUiDrives
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: List of available drives with eligibility annotations
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: './common-envelope.yaml#/components/schemas/Drive'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/ui/applications:
+    post:
+      summary: Validate and proxy application creation to Team C (D2)
+      operationId: createUiApplication
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+        - $ref: './common-envelope.yaml#/components/headers/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './common-envelope.yaml#/components/schemas/ApplicationRequest'
+      responses:
+        '201':
+          description: Application submitted via BFF
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [application_id, state, version]
+                    properties:
+                      application_id:
+                        type: string
+                      state:
+                        type: string
+                      version:
+                        type: integer
+                      queue_position:
+                        type: integer
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/ui/applications/{applicationId}:
+    get:
+      summary: Aggregate application, queue and ranking status (D2)
+      operationId: getUiApplicationById
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Aggregated application status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/DashboardAggregate'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/ui/dashboard:
+    get:
+      summary: Aggregate drive, eligibility and alert summaries for UI dashboard (D3)
+      operationId: getUiDashboard
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Live placement operations dashboard payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [active_drives, recent_applications, freshness]
+                    properties:
+                      active_drives:
+                        type: array
+                        items:
+                          $ref: './common-envelope.yaml#/components/schemas/Drive'
+                      recent_applications:
+                        type: array
+                        items:
+                          $ref: './common-envelope.yaml#/components/schemas/Application'
+                      freshness:
+                        type: string
+                        format: date-time
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/ui/stream:
+    get:
+      summary: SSE/WebSocket stream of live application and drive state changes (D3)
+      operationId: getUiStream
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Server-Sent Events stream for live UI updates
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /api/v1/ui/rankings:
+    get:
+      summary: Return Team B rankings and shortlist overlays (D3)
+      operationId: getUiRankings
+      parameters:
+        - name: drive_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Shortlist overlays and candidate rankings
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/RankingResult'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/ui/rankings/preview:
+    post:
+      summary: Preview candidate rankings (D4)
+      operationId: previewUiRankings
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './common-envelope.yaml#/components/schemas/RankingRequest'
+      responses:
+        '200':
+          description: Preview of computed ranking
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/RankingResult'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/ui/drives/{driveId}:
+    patch:
+      summary: Validate and proxy criteria/status change (D4)
+      operationId: patchUiDrive
+      parameters:
+        - name: driveId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedVersion]
+              properties:
+                expectedVersion:
+                  type: integer
+                criteria:
+                  $ref: './common-envelope.yaml#/components/schemas/DriveCriteria'
+                seats:
+                  type: integer
+                state:
+                  type: string
+      responses:
+        '200':
+          description: Drive criteria updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/Drive'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/ui/reports/placement-performance:
+    get:
+      summary: Aggregate Team C reports and Team A/B metrics for UI analytics (D4)
+      operationId: getUiReports
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/Authorization'
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Aggregated placement performance report
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      placement_report:
+                        type: object
+                      eligibility_metrics:
+                        type: object
+                      ranking_metrics:
+                        type: object
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+components:
+  responses:
+    ErrorResponse:
+      description: Standard Error Response
+      content:
+        application/json:
+          schema:
+            $ref: './common-envelope.yaml#/components/schemas/ErrorEnvelope'

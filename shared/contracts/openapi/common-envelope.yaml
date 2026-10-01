@@ -1,6 +1,517 @@
 openapi: 3.0.3
 info:
-  title: Common Envelope & Data Contracts
+  title: Campus Placement Platform - Shared Envelope & Object Specifications
   version: 1.0.0
-  description: Shared request/response envelopes and common schemas.
-paths: {}
+  description: >
+    Common HTTP headers, standard success/error response envelopes, error code registry,
+    and shared DTO schemas for cross-team interoperability.
+
+components:
+  headers:
+    Authorization:
+      description: Bearer token or trusted service credential
+      required: true
+      schema:
+        type: string
+        example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    X-Correlation-ID:
+      description: Unique correlation ID (UUID v4) propagated across all service boundaries and logs
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+    Idempotency-Key:
+      description: Unique key for idempotent state-mutating requests (retained for 24 hours)
+      required: false
+      schema:
+        type: string
+        example: 123e4567-e89b-12d3-a456-426614174000
+    X-API-Version:
+      description: Optional version indicator header (URI /v1 path remains primary boundary)
+      required: false
+      schema:
+        type: string
+        default: v1
+        example: v1
+
+  schemas:
+    ErrorCode:
+      type: string
+      description: Closed vocabulary of cross-team error codes per doc 01 §1.2
+      enum:
+        - VALIDATION_ERROR       # 400 - Request failed schema/field validation
+        - UNAUTHORIZED           # 401 - Missing/invalid credential
+        - FORBIDDEN              # 403 - Authenticated but not permitted for this action
+        - NOT_FOUND              # 404 - Referenced entity does not exist
+        - IDEMPOTENCY_CONFLICT  # 409 - Same key reused with a different request body
+        - RULE_CONFLICT         # 409 - Eligibility rule chain rejected the request
+        - STATE_CONFLICT        # 409 - Requested transition invalid from current state
+        - VERSION_MISMATCH      # 409 - graph_version / application version stale
+        - SLOT_UNAVAILABLE      # 409 - Interview slot/seat exhausted
+        - LOCK_TIMEOUT          # 423 - Could not acquire a required lock in time
+        - RATE_LIMITED          # 429 - Caller exceeded agreed rate limit
+        - UPSTREAM_UNAVAILABLE  # 502 - A dependency (A, B, or C) failed or timed out
+        - INTERNAL_ERROR        # 500 - Unhandled fault
+
+    Meta:
+      type: object
+      required:
+        - correlation_id
+        - api_version
+      properties:
+        correlation_id:
+          type: string
+          format: uuid
+          example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+        api_version:
+          type: string
+          example: v1
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-08-23T12:00:00.000Z"
+
+    ErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+          example: cgpa
+        reason:
+          type: string
+          example: below_cutoff
+        message:
+          type: string
+          example: CGPA 6.5 is below the required cutoff of 7.0
+
+    ErrorBody:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          example: Eligibility rule evaluation rejected the request.
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+
+    ErrorEnvelope:
+      type: object
+      required:
+        - error
+        - meta
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    # ---------------------------------------------------------
+    # Core Data DTO Objects (Doc 01 §1.3)
+    # ---------------------------------------------------------
+
+    Student:
+      type: object
+      required:
+        - student_id
+        - name
+        - branch
+        - cgpa
+        - backlogs
+        - attendance
+        - skill_tags
+      properties:
+        student_id:
+          type: string
+          example: STU-1001
+        name:
+          type: string
+          example: Rahul Sharma
+        branch:
+          type: string
+          example: CSE
+        cgpa:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 10.0
+          example: 8.45
+        backlogs:
+          type: integer
+          minimum: 0
+          example: 0
+        attendance:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 100.0
+          example: 92.5
+        skill_tags:
+          type: array
+          items:
+            type: string
+          example: ["Node.js", "TypeScript", "Algorithms"]
+        version:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DriveCriteria:
+      type: object
+      required:
+        - min_cgpa
+        - max_backlogs
+        - allowed_branches
+        - min_attendance
+        - required_skill_tags
+      properties:
+        min_cgpa:
+          type: number
+          format: float
+          example: 7.5
+        max_backlogs:
+          type: integer
+          example: 0
+        allowed_branches:
+          type: array
+          items:
+            type: string
+          example: ["CSE", "IT", "ECE"]
+        min_attendance:
+          type: number
+          format: float
+          example: 75.0
+        required_skill_tags:
+          type: array
+          items:
+            type: string
+          example: ["TypeScript", "Algorithms"]
+
+    Drive:
+      type: object
+      required:
+        - drive_id
+        - company
+        - criteria
+        - seats
+        - package
+        - state
+        - version
+      properties:
+        drive_id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        company:
+          type: string
+          example: TechCorp Inc.
+        criteria:
+          $ref: '#/components/schemas/DriveCriteria'
+        seats:
+          type: integer
+          minimum: 0
+          example: 5
+        package:
+          type: string
+          example: 12 LPA
+        state:
+          type: string
+          enum: [DRAFT, OPEN, CLOSED, ARCHIVED]
+          example: OPEN
+        version:
+          type: integer
+          example: 1
+
+    ApplicationRequest:
+      type: object
+      required:
+        - student_id
+        - drive_id
+        - resume_version
+        - consent
+      properties:
+        application_id:
+          type: string
+          format: uuid
+          description: Server-generated UUID
+          example: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+        student_id:
+          type: string
+          example: STU-1001
+        drive_id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        resume_version:
+          type: string
+          example: v2.1
+        consent:
+          type: boolean
+          description: Student consent indicator; must be true
+          example: true
+
+    Application:
+      type: object
+      required:
+        - application_id
+        - student_id
+        - drive_id
+        - resume_version
+        - consent
+        - idempotency_key
+        - state
+        - version
+      properties:
+        application_id:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+        student_id:
+          type: string
+          example: STU-1001
+        drive_id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        resume_version:
+          type: string
+          example: v2.1
+        consent:
+          type: boolean
+          example: true
+        idempotency_key:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        state:
+          type: string
+          enum:
+            - APPLIED
+            - SCREENING
+            - RULE_EVALUATED
+            - SHORTLISTED
+            - INTERVIEW_SCHEDULED
+            - SELECTED
+            - OFFER_ISSUED
+            - NOT_ELIGIBLE
+            - WAITLISTED
+            - WITHDRAWN
+            - EXPIRED
+            - COMPENSATION_REQUIRED
+          example: APPLIED
+        version:
+          type: integer
+          example: 1
+        decision_id:
+          type: string
+          format: uuid
+          nullable: true
+          example: d1e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f6a
+        ranking_id:
+          type: string
+          format: uuid
+          nullable: true
+          example: r1e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f6b
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    EligibilityRequest:
+      type: object
+      required:
+        - request_id
+        - application_id
+        - student_id
+        - drive_id
+        - rule_set_version
+        - priority
+        - submitted_at
+      properties:
+        request_id:
+          type: string
+          format: uuid
+          example: req-98765432-10fe-dcba-9876-543210fedcba
+        application_id:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+        student_id:
+          type: string
+          example: STU-1001
+        drive_id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        rule_set_version:
+          type: string
+          example: v1.2.0
+        priority:
+          type: string
+          enum: [NORMAL, HIGH]
+          example: NORMAL
+        submitted_at:
+          type: string
+          format: date-time
+
+    EligibilityDecision:
+      type: object
+      required:
+        - decision_id
+        - request_id
+        - eligibility_result
+        - failed_rules
+        - rule_set_version
+        - decision_metrics
+      properties:
+        decision_id:
+          type: string
+          format: uuid
+          example: d1e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f6a
+        request_id:
+          type: string
+          format: uuid
+          example: req-98765432-10fe-dcba-9876-543210fedcba
+        eligibility_result:
+          type: string
+          enum: [ELIGIBLE, CONDITIONAL, NOT_ELIGIBLE]
+          example: ELIGIBLE
+        failed_rules:
+          type: array
+          items:
+            type: string
+          example: []
+        rule_set_version:
+          type: string
+          example: v1.2.0
+        lease_id:
+          type: string
+          format: uuid
+          nullable: true
+          example: lease-1234-5678
+        decision_metrics:
+          type: object
+          properties:
+            evaluation_time_ms:
+              type: number
+              example: 12.4
+            queue_wait_ms:
+              type: number
+              example: 45.1
+
+    RankingRequest:
+      type: object
+      required:
+        - ranking_id_request
+        - drive_id
+        - graph_version
+        - algorithm
+      properties:
+        ranking_id_request:
+          type: string
+          format: uuid
+          example: rreq-11223344-5566-7788-9900-aabbccddeeff
+        drive_id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        graph_version:
+          type: string
+          example: gv-2026.08.01
+        algorithm:
+          type: string
+          enum: [WEIGHTED_SCORE, HEAP_TOPK, MERGE_SORT]
+          example: WEIGHTED_SCORE
+        constraints:
+          type: object
+          additionalProperties: true
+
+    CandidateScore:
+      type: object
+      required:
+        - student_id
+        - score
+        - rank
+      properties:
+        student_id:
+          type: string
+          example: STU-1001
+        score:
+          type: number
+          example: 94.5
+        rank:
+          type: integer
+          example: 1
+
+    RankingResult:
+      type: object
+      required:
+        - ranking_id
+        - ordered_candidates
+        - total_score
+        - algorithm
+        - graph_version
+      properties:
+        ranking_id:
+          type: string
+          format: uuid
+          example: r1e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f6b
+        ordered_candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/CandidateScore'
+        total_score:
+          type: number
+          example: 94.5
+        algorithm:
+          type: string
+          example: WEIGHTED_SCORE
+        graph_version:
+          type: string
+          example: gv-2026.08.01
+        tie_break_rule:
+          type: string
+          example: HIGHER_CGPA_FIRST
+        explored_candidate_count:
+          type: integer
+          example: 25
+
+    DashboardAggregate:
+      type: object
+      required:
+        - application
+        - freshness
+        - alerts
+        - permissions
+      properties:
+        application:
+          $ref: '#/components/schemas/Application'
+        decision:
+          $ref: '#/components/schemas/EligibilityDecision'
+        ranking:
+          $ref: '#/components/schemas/RankingResult'
+        freshness:
+          type: string
+          format: date-time
+        alerts:
+          type: array
+          items:
+            type: string
+          example: ["Interview slot reserved", "Ranking finalized"]
+        permissions:
+          type: array
+          items:
+            type: string
+          example: ["VIEW_STATUS", "WITHDRAW_APPLICATION"]

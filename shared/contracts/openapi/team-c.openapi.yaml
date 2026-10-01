@@ -2,5 +2,512 @@ openapi: 3.0.3
 info:
   title: Team C - Data & Transaction Manager API
   version: 1.0.0
-  description: API specifications for Team C core database engine and services.
-paths: {}
+  description: >
+    API contract for Team C, acting as authoritative system of record backed by custom Node.js JSON DBMS.
+    Manages master data, application transactions, state machine enforcement, atomic offer commits/compensation, audit log, and recovery verification.
+
+paths:
+  /api/v1/students:
+    post:
+      summary: Register a new student profile (C1)
+      operationId: createStudent
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, branch, cgpa, backlogs, attendance, skill_tags]
+              properties:
+                name:
+                  type: string
+                branch:
+                  type: string
+                cgpa:
+                  type: number
+                backlogs:
+                  type: integer
+                attendance:
+                  type: number
+                skill_tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Student profile created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [student_id, version, created_at]
+                    properties:
+                      student_id:
+                        type: string
+                      version:
+                        type: integer
+                      created_at:
+                        type: string
+                        format: date-time
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/drives:
+    get:
+      summary: List placement drives with criteria (C1)
+      operationId: listDrives
+      parameters:
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [DRAFT, OPEN, CLOSED, ARCHIVED]
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: List of drives
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: './common-envelope.yaml#/components/schemas/Drive'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/drives/{driveId}/criteria:
+    get:
+      summary: Read drive criteria and seat capacity (C1)
+      operationId: getDriveCriteria
+      parameters:
+        - name: driveId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Drive criteria and seats
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/Drive'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /internal/v1/drives/{driveId}:
+    patch:
+      summary: Update drive operational state or criteria (C1)
+      operationId: updateDrive
+      parameters:
+        - name: driveId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedVersion]
+              properties:
+                expectedVersion:
+                  type: integer
+                criteria:
+                  $ref: './common-envelope.yaml#/components/schemas/DriveCriteria'
+                seats:
+                  type: integer
+                state:
+                  type: string
+                  enum: [DRAFT, OPEN, CLOSED, ARCHIVED]
+      responses:
+        '200':
+          description: Drive updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/Drive'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '409':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/applications:
+    post:
+      summary: Create an application (C2)
+      operationId: createApplication
+      description: Validates drive and student, starts transaction, creates Application in APPLIED state, triggers Team A eligibility request.
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+        - $ref: './common-envelope.yaml#/components/headers/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './common-envelope.yaml#/components/schemas/ApplicationRequest'
+      responses:
+        '201':
+          description: Application created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [application_id, state, version]
+                    properties:
+                      application_id:
+                        type: string
+                        format: uuid
+                      state:
+                        type: string
+                        example: APPLIED
+                      version:
+                        type: integer
+                      queue_position:
+                        type: integer
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '409':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/applications/{applicationId}:
+    get:
+      summary: Read application state and referenced decision/ranking (C2)
+      operationId: getApplicationById
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Application details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/Application'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/applications/{applicationId}/withdraw:
+    post:
+      summary: Withdraw an application (C2)
+      operationId: withdrawApplication
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+        - $ref: './common-envelope.yaml#/components/headers/Idempotency-Key'
+      responses:
+        '200':
+          description: Application withdrawn
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/Application'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '409':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /internal/v1/offers/commit:
+    post:
+      summary: Atomically commit an offer transaction (C3)
+      operationId: commitOffer
+      description: Atomically updates application state, decrements seats, writes audit record and outbox event.
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+        - $ref: './common-envelope.yaml#/components/headers/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [application_id, decision_id, lease_id, expectedVersion]
+              properties:
+                application_id:
+                  type: string
+                decision_id:
+                  type: string
+                lease_id:
+                  type: string
+                ranking_id:
+                  type: string
+                expectedVersion:
+                  type: integer
+      responses:
+        '200':
+          description: Commit outcome
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [commit_status, application]
+                    properties:
+                      commit_status:
+                        type: string
+                        enum: [COMMITTED, REJECTED]
+                      application:
+                        $ref: './common-envelope.yaml#/components/schemas/Application'
+                      conflict_details:
+                        type: string
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '409':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /internal/v1/offers/compensate:
+    post:
+      summary: Explicitly trigger compensation for a failed commit (C3)
+      operationId: compensateOffer
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [application_id, reason]
+              properties:
+                application_id:
+                  type: string
+                lease_id:
+                  type: string
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Compensation recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [compensated, application_id]
+                    properties:
+                      compensated:
+                        type: boolean
+                      application_id:
+                        type: string
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/audit:
+    get:
+      summary: Search immutable audit evidence (C4)
+      operationId: searchAudit
+      parameters:
+        - name: correlation_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: entity_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [audit_id, actor, action, timestamp, correlation_id]
+                      properties:
+                        audit_id:
+                          type: string
+                        actor:
+                          type: string
+                        action:
+                          type: string
+                        entity_id:
+                          type: string
+                        before_state:
+                          type: object
+                        after_state:
+                          type: object
+                        timestamp:
+                          type: string
+                          format: date-time
+                        correlation_id:
+                          type: string
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/reports/placement-performance:
+    get:
+      summary: Read aggregated placement performance analytics (C4)
+      operationId: getPlacementReport
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Aggregate placement metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total_applications:
+                        type: integer
+                      total_offers:
+                        type: integer
+                      department_breakdown:
+                        type: object
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /internal/v1/recovery/verify:
+    post:
+      summary: Trigger recovery self-check and WAL verification (C4)
+      operationId: verifyRecovery
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Recovery self-check report
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [status, lastCheckpointLsn, walBacklog]
+                    properties:
+                      status:
+                        type: string
+                        example: OK
+                      lastCheckpointLsn:
+                        type: integer
+                      walBacklog:
+                        type: integer
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /internal/v1/outbox/stream:
+    get:
+      summary: Server-Sent Events (SSE) stream of outbox events for Team D (C5/doc 05 §5.3)
+      operationId: streamOutboxEvents
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: SSE stream of outbox event JSON messages
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: "event: application_state_change\ndata: {\"application_id\":\"...\",\"state\":\"SHORTLISTED\"}\n\n"
+
+  /healthz:
+    get:
+      summary: Service health & readiness check
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, uptimeSec]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  uptimeSec:
+                    type: number
+                    example: 1245.5
+
+components:
+  responses:
+    ErrorResponse:
+      description: Standard Error Response
+      content:
+        application/json:
+          schema:
+            $ref: './common-envelope.yaml#/components/schemas/ErrorEnvelope'

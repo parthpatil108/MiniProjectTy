@@ -1,6 +1,316 @@
 openapi: 3.0.3
 info:
-  title: Team B - Ranking & Analytics Engine API
+  title: Team B - Ranking & Shortlisting Analytics Engine API
   version: 1.0.0
-  description: API specifications for Team B ranking and analytics services.
-paths: {}
+  description: >
+    API contract for Team B, managing candidate skill-requirement graphs, ranking algorithm computation,
+    shortlist caching, and performance analytics.
+
+paths:
+  /api/v1/rankings/compute:
+    post:
+      summary: Compute candidate ranking for a drive
+      operationId: computeRanking
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './common-envelope.yaml#/components/schemas/RankingRequest'
+      responses:
+        '200':
+          description: Ranking computation result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/RankingResult'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '409':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/rankings/{rankingId}:
+    get:
+      summary: Read ranking, score and algorithm metadata
+      operationId: getRankingById
+      parameters:
+        - name: rankingId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Ranking metadata and candidate ordering
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    $ref: './common-envelope.yaml#/components/schemas/RankingResult'
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/profiles:
+    get:
+      summary: Render student/drive profiles and graph version
+      operationId: getProfilesGraph
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Skill/requirement graph summary and current graph_version
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [graph_version, total_students, total_drives]
+                    properties:
+                      graph_version:
+                        type: string
+                      total_students:
+                        type: integer
+                      total_drives:
+                        type: integer
+                      representation_type:
+                        type: string
+                        enum: [ADJACENCY_LIST, ADJACENCY_MATRIX]
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /internal/v1/profiles/students/{studentId}:
+    put:
+      summary: Create or update a student profile node in Team B graph
+      operationId: syncStudentProfile
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './common-envelope.yaml#/components/schemas/Student'
+      responses:
+        '200':
+          description: Student profile synchronized in graph
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [student_id, graph_version]
+                    properties:
+                      student_id:
+                        type: string
+                      graph_version:
+                        type: string
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /internal/v1/profiles/drives/{driveId}:
+    put:
+      summary: Create or update drive requirement node in Team B graph
+      operationId: syncDriveProfile
+      parameters:
+        - name: driveId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './common-envelope.yaml#/components/schemas/Drive'
+      responses:
+        '200':
+          description: Drive requirement profile synchronized in graph
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    required: [drive_id, graph_version]
+                    properties:
+                      drive_id:
+                        type: string
+                      graph_version:
+                        type: string
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /internal/v1/shortlist-index/{key}:
+    get:
+      summary: Read cached shortlist entry by candidate key
+      operationId: getShortlistIndexByKey
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Shortlist index lookup result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      rank:
+                        type: integer
+                      cached_shortlist:
+                        type: object
+                      lookup_time_us:
+                        type: number
+                      cache_hit:
+                        type: boolean
+                      index_statistics:
+                        type: object
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /internal/v1/shortlist-cache/invalidate:
+    post:
+      summary: Invalidate cached shortlist data for a candidate profile version
+      operationId: invalidateShortlistCache
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, profile_version]
+              properties:
+                key:
+                  type: string
+                profile_version:
+                  type: string
+      responses:
+        '200':
+          description: Shortlist cache invalidation result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/analytics/analyse:
+    post:
+      summary: Run cohort and performance analysis
+      operationId: runAnalytics
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                department_filter:
+                  type: string
+                batch:
+                  type: string
+      responses:
+        '200':
+          description: Cohort analytics result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      department_trend:
+                        type: object
+                      conversion_rate:
+                        type: number
+                      package_distribution:
+                        type: object
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+  /api/v1/metrics/ranking:
+    get:
+      summary: Read ranking latency, cache and complexity metrics
+      operationId: getRankingMetrics
+      parameters:
+        - $ref: './common-envelope.yaml#/components/headers/X-Correlation-ID'
+      responses:
+        '200':
+          description: Telemetry and algorithm metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      p95_computation_ms:
+                        type: number
+                      cache_hit_rate:
+                        type: number
+                      index_lookup_p95_ms:
+                        type: number
+                  meta:
+                    $ref: './common-envelope.yaml#/components/schemas/Meta'
+
+components:
+  responses:
+    ErrorResponse:
+      description: Standard Error Response
+      content:
+        application/json:
+          schema:
+            $ref: './common-envelope.yaml#/components/schemas/ErrorEnvelope'
