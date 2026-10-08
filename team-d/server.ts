@@ -27,6 +27,7 @@ app.use('/api/v1/students', createProxyMiddleware({ target: TEAM_C_URL, changeOr
 app.use('/api/v1/drives', createProxyMiddleware({ target: TEAM_C_URL, changeOrigin: true }));
 app.use('/api/v1/applications', createProxyMiddleware({ target: TEAM_C_URL, changeOrigin: true }));
 app.use('/api/v1/offers', createProxyMiddleware({ target: TEAM_C_URL, changeOrigin: true }));
+app.use('/internal/v1/outbox/stream', createProxyMiddleware({ target: TEAM_C_URL, changeOrigin: true }));
 
 app.listen(PORT, () => {
   console.log(`Team D BFF Server running on port ${PORT}`);

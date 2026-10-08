@@ -8,6 +8,7 @@ export class MetricsCollector {
   private startTime: number = Date.now();
   private starvationCount: number = 0;
   private starvationThresholdMs: number = 5000;
+  private deadlockCyclesDetected: number = 0;
 
   public recordEvaluation(
     latencyMs: number,
@@ -30,6 +31,10 @@ export class MetricsCollector {
         this.starvationCount++;
       }
     }
+  }
+
+  public recordDeadlock(): void {
+    this.deadlockCyclesDetected++;
   }
 
   private calculatePercentile(values: number[], percentile: number): number {
@@ -71,7 +76,8 @@ export class MetricsCollector {
           max_wait_ms: this.calculateMax(this.waitTimesNormal)
         }
       },
-      starvation_count: this.starvationCount
+      starvation_count: this.starvationCount,
+      deadlock_cycles_detected: this.deadlockCyclesDetected
     };
   }
 
@@ -82,5 +88,8 @@ export class MetricsCollector {
     this.waitTimesNormal = [];
     this.startTime = Date.now();
     this.starvationCount = 0;
+    this.deadlockCyclesDetected = 0;
   }
 }
+
+export const globalMetricsCollector = new MetricsCollector();

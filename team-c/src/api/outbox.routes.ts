@@ -20,6 +20,14 @@ outboxRouter.get('/internal/v1/outbox/stream', (req: Request, res: Response) => 
     res.write(`data: ${JSON.stringify(evt.payload)}\n\n`);
   }
 
-  res.write(`event: ping\ndata: {"time": "${new Date().toISOString()}"}\n\n`);
-  res.end();
+  const listener = (evt: any) => {
+    res.write(`event: ${evt.event_type}\n`);
+    res.write(`data: ${JSON.stringify(evt.payload)}\n\n`);
+  };
+
+  OutboxService.emitter.on('new_event', listener);
+
+  req.on('close', () => {
+    OutboxService.emitter.off('new_event', listener);
+  });
 });

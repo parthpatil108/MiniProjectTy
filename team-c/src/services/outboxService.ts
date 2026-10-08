@@ -1,5 +1,6 @@
 import { StorageManager } from '../storage/storageManager.js';
 import { BaseRecord } from '../storage/table.js';
+import { EventEmitter } from 'events';
 
 export interface OutboxEvent {
   event_id: string;
@@ -12,6 +13,7 @@ export interface OutboxEvent {
 export class OutboxService {
   private customStorageManager?: StorageManager;
   private static events: OutboxEvent[] = [];
+  public static emitter = new EventEmitter();
 
   constructor(storageManager?: StorageManager) {
     this.customStorageManager = storageManager;
@@ -31,6 +33,7 @@ export class OutboxService {
     };
 
     OutboxService.events.push(event);
+    OutboxService.emitter.emit('new_event', event);
 
     try {
       this.getStorageManager().insert<BaseRecord>('outbox', {

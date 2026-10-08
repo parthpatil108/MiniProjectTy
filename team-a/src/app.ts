@@ -7,6 +7,7 @@ import { EligibilityService } from './services/EligibilityService';
 import { createEligibilityRouter } from './routes/eligibilityRoutes';
 import { createRuleRouter } from './routes/ruleRoutes';
 import { createMetricRouter } from './routes/metricRoutes';
+import { createLockRouter } from './routes/lockRoutes';
 import { config } from './config/env';
 
 export function createApp(eligibilityService?: EligibilityService): Express {
@@ -34,6 +35,7 @@ export function createApp(eligibilityService?: EligibilityService): Express {
 
   // Internal v1 routes
   app.use('/internal/v1', createRuleRouter(service));
+  app.use('/internal/v1', createLockRouter());
 
   // 404 Handler
   app.use((req: Request, res: Response, next: NextFunction) => {
