@@ -8,7 +8,7 @@ On replacement, B3 removes candidate keys no longer present and refreshes each r
 
 B3 indexes B2's existing ordered shortlist output; it does not rank candidates. Entries retain the B2 fields `student_id`, `rank`, and `score`. The lookup `key` is a candidate index key formed as URL-encoded `shortlist_key::student_id`; this lets a student appear in multiple shortlists without overwriting another index entry. Index entries point to their shortlist cache key. The response's `cached_shortlist` object contains an `entries` array of ordered B2 entries. `index_statistics` reports entry, lookup, hit, and miss counts. Profile-version mismatch and expiry remove or refuse the stale cache value. Invalidation is conditional on an exact `profile_version`, so a request for an older version cannot delete a newer entry. Hash map lookup is average O(1), not guaranteed O(1); AVL search/insert/delete are O(log n). Both index implementations are in-memory processing representations.
 
-The documented operation adapters return the shared `{data, meta}` / `{error, meta}` envelope for `GET /internal/v1/shortlist-index/{key}`, `POST /internal/v1/shortlist-cache/invalidate`, and `GET /api/v1/metrics/ranking`. The metrics adapter reports observed cache hit rate and index lookup p95; B2 ranking computation latency is not reported because B2 has no timing instrumentation. This package has no HTTP server, so a host service must bind these adapters to routes.
+The API server in `src/api/server.ts` binds these operations to HTTP routes and uses the shared `{data, meta}` / `{error, meta}` envelope. The metrics route reports observed cache hit rate and index lookup p95. Ranking computation latency is measured by the reproducible benchmark command below.
 
 ## B4: historical placement analytics
 
@@ -20,4 +20,16 @@ The MVP record is `{student_id, department, batch, company, stage, package_lpa?}
 
 Aggregation takes O(n + c log c): one pass over n records plus sorting c distinct cohorts for stable output. Analytics are historical summaries only and do not perform current candidate ranking. Runtime benchmarks are reported separately from placement metrics.
 
-Scripts: `npm test`, `npm run typecheck`, `npm run build`, and `npm run demo:b1` through `npm run demo:b4`.
+## Reproducible benchmarks
+
+Run `npm run benchmark` to execute the ranking, shortlist index, cache, invalidation, and local ranking API load benchmarks. The command builds the TypeScript project and runs `src/demo/benchmarkDemo.ts`.
+
+The ranking benchmark generates 1,000 deterministic student profiles and a graph with 5,000 edges, warms each supported algorithm, then reports per-algorithm p50/p95/p99, min, max, and mean elapsed milliseconds over the requested repetitions. Full-result comparisons use K=1,000 for all algorithms. A separate configurable HEAP_TOPK workload defaults to K=10 and reports its K, result count, and timing distribution. It compares full-result MERGE_SORT and HEAP_TOPK scores and ordering with WEIGHTED_SCORE, reporting score deviation, candidate discrepancy, and ordering mismatches. If candidates are missing, `max_score_deviation` is `null` and `has_discrepancy` is true; JSON does not silently convert infinity to null. The reference here is the WEIGHTED_SCORE output from the same implementation; this is an in-project consistency check, not an independent external oracle.
+
+The Hash/AVL benchmark runs the existing `ShortlistIndex` implementations over 10,000 entries and 20,000 deterministic hit/miss lookups. It reports total, average, p50, and p95 lookup timings. Structural counts describe logical Map entries and AVL nodes, not RAM usage; each current `ShortlistIndex` instance maintains both structures. Expected lookup complexity is average O(1) for Map and O(log n) for AVL.
+
+The cache benchmark performs repeated reads of a computed shortlist with a deterministic 90% intended hit pattern and measures actual hit/miss counts, then measures individual invalidation durations. A hit rate of 90% applies only to this deterministic benchmark workload, not production traffic.
+
+The API benchmark performs 20 warm-up requests, then 3 measured runs of 400 requests each, scheduled toward 200 requests per second on an in-process HTTP server using the actual ranking route. Each run reports the target rate, scheduled and dispatched counts, client dispatch rate calculated from actual dispatch timestamps over the first-to-last dispatch interval, response success/failure percentage, response throughput (received HTTP responses per second from first dispatch to last received response), and latency p50/p95/p99. The dispatch and response windows exclude server startup and shutdown. Response drain is included in response throughput but not dispatch rate. Dispatch rate is inter-dispatch rate; scheduling delays can produce a lower observed rate or request bunching, which is not separately histogrammed. Local API load testing does not establish production capacity. Results vary by machine and runtime; the command does not guarantee any KPI target. These wall-clock measurements are distinct from theoretical complexity and structural storage evidence.
+
+Scripts: `npm test`, `npm run typecheck`, `npm run build`, `npm run demo:b1` through `npm run demo:b4`, and `npm run benchmark`.
