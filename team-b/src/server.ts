@@ -6,7 +6,7 @@ import { ShortlistIndex } from './services/shortlistIndexService';
 import { ShortlistCacheService } from './services/shortlistCacheService';
 import { ShortlistLookupService } from './services/shortlistLookupService';
 import { RankingMetricsService } from './services/rankingMetricsService';
-import { dummyStudents, dummyDrives } from './data/dummyProfiles';
+import { Student, Drive } from './types';
 
 const port = process.env.PORT || 3002;
 
@@ -19,9 +19,29 @@ const shortlistCacheService = new ShortlistCacheService();
 const shortlistLookupService = new ShortlistLookupService(shortlistIndexService, shortlistCacheService, (key) => registry.getGraphSummary().graph_version);
 const rankingMetricsService = new RankingMetricsService(shortlistIndexService, shortlistCacheService);
 
-// Load dummy data
-for (const student of dummyStudents) registry.addOrUpdateStudent(student);
-for (const drive of dummyDrives) registry.addOrUpdateDrive(drive);
+const TEAM_C_URL = process.env.TEAM_C_URL || 'http://localhost:3003';
+
+async function syncWithTeamC() {
+  try {
+    const studentsRes = await fetch(`${TEAM_C_URL}/api/v1/students`);
+    if (studentsRes.ok) {
+      const { data } = await studentsRes.json();
+      data.forEach((student: Student) => registry.addOrUpdateStudent(student));
+    }
+    const drivesRes = await fetch(`${TEAM_C_URL}/api/v1/drives`);
+    if (drivesRes.ok) {
+      const { data } = await drivesRes.json();
+      data.forEach((drive: Drive) => registry.addOrUpdateDrive(drive));
+    }
+    console.log('Synced with Team C successfully.');
+  } catch (err) {
+    console.error('Failed to sync with Team C:', err);
+  }
+}
+
+// Initial sync
+syncWithTeamC();
+setInterval(syncWithTeamC, 10000); // Periodic sync
 
 const app = createApp(
   registry,
