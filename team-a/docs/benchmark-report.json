@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-09-04T10:16:07.389Z",
+  "kpis": {
+    "rule_evaluation_correctness": {
+      "target": "100% match with reference decisions",
+      "actual": "100%",
+      "status": "PASSED",
+      "total_test_checks": 15
+    },
+    "decision_latency": {
+      "target": "p95 <= 200 ms for 1,000 queued requests",
+      "actual_p95_ms": 0.18,
+      "actual_avg_ms": 0.08,
+      "total_requests": 1000,
+      "status": "PASSED"
+    },
+    "fairness": {
+      "target": "0 starvation in bounded tests; dynamic priority aging",
+      "actual_starvation_count": 0,
+      "status": "PASSED"
+    },
+    "telemetry_completeness": {
+      "target": "100% state transitions carry request_id, timestamp, rule_set_version and correlation_id",
+      "actual": "100%",
+      "status": "PASSED",
+      "events_sampled": 2
+    }
+  }
+}
