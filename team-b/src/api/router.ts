@@ -305,12 +305,17 @@ export async function handleRequest(
       parts[1] === 'v1' &&
       parts[2] === 'rankings'
     ) {
+      const result = context.ranking.getRanking(parts[3]);
+      if (result) {
+        sendJson(res, 200, success(result, correlationId));
+        return;
+      }
       sendJson(
         res,
         404,
         failure(
           'NOT_FOUND',
-          `Ranking ${parts[3]} is not stored as a mutable server-side record in this MVP. Use POST /api/v1/rankings/compute to generate the deterministic ranking.`,
+          `Ranking ${parts[3]} was not found.`,
           correlationId,
         ),
       );

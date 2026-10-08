@@ -6,6 +6,13 @@ import { mergeSortCandidates } from '../src/ranking/mergeSort';
 import { evaluateStudentEligibility } from '../src/services/eligibilityService';
 import { ProfileRegistryService } from '../src/services/profileRegistryService';
 import { createShortlist, RankingService } from '../src/services/rankingService';
+import { createServer } from 'node:http';
+import { handleRequest } from '../src/api/router';
+import { ShortlistIndex } from '../src/services/shortlistIndexService';
+import { ShortlistCacheService } from '../src/services/shortlistCacheService';
+import { ShortlistLookupService } from '../src/services/shortlistLookupService';
+import { AnalyticsService } from '../src/services/analyticsService';
+import { RankingMetricsService } from '../src/services/rankingMetricsService';
 
 function createRegistry(): ProfileRegistryService { const registry = new ProfileRegistryService(); for (const student of dummyStudents) registry.addOrUpdateStudent(student); for (const drive of dummyDrives) registry.addOrUpdateDrive(drive); return registry; }
 
@@ -40,4 +47,39 @@ test('B2 shortlist handles K boundaries and zero eligible candidates', () => {
   const noCandidatesRegistry = new ProfileRegistryService();
   noCandidatesRegistry.addOrUpdateStudent(dummyStudents[1]); noCandidatesRegistry.addOrUpdateDrive(dummyDrives[0]);
   assert.deepEqual(new RankingService(noCandidatesRegistry).computeRanking({ driveId: 'D001' }).ordered_candidates, []);
+});
+
+test('B2 rejects missing, negative, non-finite, and non-100 skill weight vectors', () => {
+  const student = dummyStudents[0];
+  const invalidWeights: Array<Record<string, number>> = [
+    { Java: 40, SQL: 30 },
+    { Java: -10, SQL: 50, React: 60 },
+    { Java: 40, SQL: 30, React: 20 },
+    { Java: 50, SQL: 50, React: 50 },
+    { Java: Number.NaN, SQL: 50, React: 50 },
+  ];
+  for (const weights of invalidWeights) {
+    assert.throws(() => calculateWeightedScore(student, { ...dummyDrives[0], skill_weightage: weights }));
+  }
+});
+
+test('B2 API retrieves computed rankings and returns the error envelope for unknown IDs', async () => {
+  const registry = createRegistry(); const ranking = new RankingService(registry);
+  const index = new ShortlistIndex('hash'); const cache = new ShortlistCacheService();
+  const context = { registry, ranking, lookup: new ShortlistLookupService(index, cache, () => registry.graph_version), analytics: new AnalyticsService([]), metrics: new RankingMetricsService(index, cache) };
+  const server = createServer((req, res) => { void handleRequest(req, res, context); });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const address = server.address(); assert.ok(address && typeof address !== 'string');
+    const base = `http://127.0.0.1:${address.port}`;
+    const computed = await fetch(`${base}/api/v1/rankings/compute`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ drive_id: 'D001' }) });
+    const payload = await computed.json() as { data: { ranking_id: string } };
+    const retrieved = await fetch(`${base}/api/v1/rankings/${payload.data.ranking_id}`);
+    assert.equal(retrieved.status, 200);
+    assert.deepEqual((await retrieved.json() as { data: unknown }).data, payload.data);
+    const missing = await fetch(`${base}/api/v1/rankings/unknown-id`);
+    const missingPayload = await missing.json() as { error: { code: string } };
+    assert.equal(missing.status, 404);
+    assert.equal(missingPayload.error.code, 'NOT_FOUND');
+  } finally { server.close(); }
 });
