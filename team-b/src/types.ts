@@ -37,6 +37,18 @@ export interface GraphSummary {
   total_students: number;
   total_drives: number;
   representation_type: 'ADJACENCY_LIST';
+  coverage_summary: ProfileCoverageSummary;
+}
+
+export interface ProfileCoverageSummary {
+  total_students: number;
+  total_drives: number;
+  total_student_skill_edges: number;
+  total_drive_skill_edges: number;
+  covered_required_skill_pairs: number;
+  uncovered_required_skill_pairs: number;
+  coverage_percentage: number;
+  uncovered_requirements: Array<{ drive_id: string; skill: string }>;
 }
 
 export interface EligibilityResult {
@@ -84,12 +96,20 @@ export interface HistoricalPlacementRecord {
 }
 
 export type RankingAlgorithm = 'WEIGHTED_SCORE' | 'MERGE_SORT' | 'HEAP_TOPK';
+export type OptimizationMetric = 'SCORE_DESC';
+
+export interface RankingConstraints {
+  min_cgpa?: number;
+  max_backlogs?: number;
+  min_project_score?: number;
+}
 
 export interface RankingResult {
   ranking_id: string;
   ordered_candidates: RankedCandidate[];
   total_score: number;
   algorithm: RankingAlgorithm;
+  optimization_metric: OptimizationMetric;
   graph_version: string;
   tie_break_rule: string;
   explored_candidate_count: number;
@@ -101,4 +121,7 @@ export interface ComputeRankingOptions {
   driveId?: string;
   algorithm?: RankingAlgorithm;
   topK?: number;
+  candidatePool?: string[];
+  optimizationMetric?: OptimizationMetric;
+  constraints?: RankingConstraints;
 }

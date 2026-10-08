@@ -40,6 +40,63 @@ test('B2 produces consistent WEIGHTED_SCORE, MERGE_SORT, and HEAP_TOPK results',
   assert.deepEqual(weighted.ordered_candidates, heap.ordered_candidates);
   assert.equal(calculateWeightedScore(dummyStudents[0], dummyDrives[0]).score, 96.2);
 });
+
+test('B2 algorithms match an independently hand-calculated reference cohort', () => {
+  const registry = new ProfileRegistryService();
+  registry.addOrUpdateStudent({ student_id: 'A', name: 'A', branch: 'CSE', cgpa: 8, backlogs: 0, attendance: 90, project_score: 80, skill_tags: ['Java'] });
+  registry.addOrUpdateStudent({ student_id: 'B', name: 'B', branch: 'CSE', cgpa: 9, backlogs: 0, attendance: 90, project_score: 40, skill_tags: ['Java'] });
+  registry.addOrUpdateStudent({ student_id: 'C', name: 'C', branch: 'CSE', cgpa: 7, backlogs: 0, attendance: 90, project_score: 80, skill_tags: ['Java'] });
+  registry.addOrUpdateDrive({ drive_id: 'REF', company: 'Reference', criteria: { min_cgpa: 6, max_backlogs: 0, allowed_branches: ['CSE'], min_attendance: 75, required_skill_tags: ['Java'] }, skill_weightage: { Java: 100 }, seats: 3, package: '0', state: 'OPEN', version: 1 });
+  const service = new RankingService(registry);
+  // Independently hand-calculated: A=94, B=92, C=92; score ties break by higher CGPA.
+  const expected = [{ student_id: 'A', score: 94, rank: 1 }, { student_id: 'B', score: 92, rank: 2 }, { student_id: 'C', score: 92, rank: 3 }];
+  assert.deepEqual(service.computeRanking({ driveId: 'REF', algorithm: 'WEIGHTED_SCORE' }).ordered_candidates, expected);
+  assert.deepEqual(service.computeRanking({ driveId: 'REF', algorithm: 'MERGE_SORT' }).ordered_candidates, expected);
+  assert.deepEqual(service.computeRanking({ driveId: 'REF', algorithm: 'HEAP_TOPK', topK: 3 }).ordered_candidates, expected);
+});
+
+test('B2 candidate_pool restricts, deduplicates, counts, and rejects unknown IDs deterministically', () => {
+  const service = new RankingService(createRegistry());
+  const restricted = service.computeRanking({ driveId: 'D001', candidatePool: ['S004'] });
+  assert.deepEqual(restricted.ordered_candidates.map((candidate) => candidate.student_id), ['S004']);
+  assert.equal(restricted.explored_candidate_count, 1);
+  assert.notEqual(restricted.ranking_id, service.computeRanking({ driveId: 'D001' }).ranking_id);
+  const empty = service.computeRanking({ driveId: 'D001', candidatePool: [] });
+  assert.deepEqual(empty.ordered_candidates, []); assert.equal(empty.explored_candidate_count, 0);
+  const duplicates = service.computeRanking({ driveId: 'D001', candidatePool: ['S004', 'S001', 'S004'] });
+  assert.deepEqual(duplicates.ordered_candidates.map((candidate) => candidate.student_id), ['S004', 'S001']);
+  assert.equal(duplicates.explored_candidate_count, 2);
+  assert.equal(duplicates.ranking_id, service.computeRanking({ driveId: 'D001', candidatePool: ['S001', 'S004'] }).ranking_id);
+  assert.throws(() => service.computeRanking({ driveId: 'D001', candidatePool: ['S999'] }), /Unknown candidate ID.*S999/);
+});
+
+test('B2 supports score maximization and only implemented eligibility/project constraints', () => {
+  const service = new RankingService(createRegistry());
+  const supported = service.computeRanking({ driveId: 'D001', optimizationMetric: 'SCORE_DESC' });
+  assert.equal(supported.optimization_metric, 'SCORE_DESC');
+  assert.throws(() => service.computeRanking({ driveId: 'D001', optimizationMetric: 'PACKAGE_MAX' as never }), /Unsupported optimization_metric/);
+  const projectCutoff = service.computeRanking({ driveId: 'D001', constraints: { min_project_score: 90 } });
+  assert.deepEqual(projectCutoff.ordered_candidates.map((candidate) => candidate.student_id), ['S004']);
+  assert.equal(projectCutoff.explored_candidate_count, 5);
+  assert.notEqual(projectCutoff.ranking_id, service.computeRanking({ driveId: 'D001' }).ranking_id);
+  const cgpaCutoff = service.computeRanking({ driveId: 'D001', constraints: { min_cgpa: 8.8 } });
+  assert.deepEqual(cgpaCutoff.ordered_candidates.map((candidate) => candidate.student_id), ['S004']);
+  const backlogCutoff = service.computeRanking({ driveId: 'D001', constraints: { max_backlogs: 0 } });
+  assert.deepEqual(backlogCutoff.ordered_candidates.map((candidate) => candidate.student_id), ['S004', 'S001']);
+  const orderedOptions = service.computeRanking({ driveId: 'D001', constraints: { min_cgpa: 7.5, max_backlogs: 0 } });
+  const reversedOptions = service.computeRanking({ driveId: 'D001', constraints: { max_backlogs: 0, min_cgpa: 7.5 } });
+  assert.equal(orderedOptions.ranking_id, reversedOptions.ranking_id);
+  assert.throws(() => service.computeRanking({ driveId: 'D001', constraints: { unsupported: true } as never }), /Unsupported ranking constraint/);
+});
+
+test('B2 HEAP_TOPK ranking IDs distinguish top-K results and retain both for retrieval', () => {
+  const service = new RankingService(createRegistry());
+  const topOne = service.computeRanking({ driveId: 'D001', algorithm: 'HEAP_TOPK', topK: 1 });
+  const topTwo = service.computeRanking({ driveId: 'D001', algorithm: 'HEAP_TOPK', topK: 2 });
+  assert.notEqual(topOne.ranking_id, topTwo.ranking_id);
+  assert.equal(service.getRanking(topOne.ranking_id)?.ordered_candidates.length, 1);
+  assert.equal(service.getRanking(topTwo.ranking_id)?.ordered_candidates.length, 2);
+});
 test('B2 shortlist handles K boundaries and zero eligible candidates', () => {
   const service = new RankingService(createRegistry());
   const ranked = service.computeRanking({ driveId: 'D001' }).ordered_candidates;
@@ -72,11 +129,40 @@ test('B2 API retrieves computed rankings and returns the error envelope for unkn
   try {
     const address = server.address(); assert.ok(address && typeof address !== 'string');
     const base = `http://127.0.0.1:${address.port}`;
+    const profileResponse = await fetch(`${base}/api/v1/profiles`);
+    const profiles = await profileResponse.json() as { data: { graph: { coverage_summary: { coverage_percentage: number } } } };
+    assert.equal(profiles.data.graph.coverage_summary.coverage_percentage, 100);
+    const mismatchedVersion = await fetch(`${base}/api/v1/rankings/compute`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ drive_id: 'D001', graph_version: 'stale-graph' }) });
+    const mismatchBody = await mismatchedVersion.json() as { error: { code: string } };
+    assert.equal(mismatchedVersion.status, 409);
+    assert.equal(mismatchBody.error.code, 'VERSION_MISMATCH');
+    const unsupportedMetric = await fetch(`${base}/api/v1/rankings/compute`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ drive_id: 'D001', optimization_metric: 'PACKAGE_MAX' }) });
+    assert.equal(unsupportedMetric.status, 400);
+    const unsupportedMetricBody = await unsupportedMetric.json() as { error: { message: string } };
+    assert.match(unsupportedMetricBody.error.message, /Unsupported optimization_metric/);
+    const unknownPoolId = await fetch(`${base}/api/v1/rankings/compute`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ drive_id: 'D001', candidate_pool: ['S999'] }) });
+    assert.equal(unknownPoolId.status, 400);
+    const analyticsValid = await fetch(`${base}/api/v1/analytics/analyse`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ records: [], algorithm: 'DETERMINISTIC_AGGREGATION', benchmark_size: 0, repetitions: 2 }) });
+    assert.equal(analyticsValid.status, 200);
+    const analyticsData = (await analyticsValid.json() as { data: { benchmark: { algorithm: string; benchmark_size: number; repetitions: number } } }).data;
+    assert.deepEqual([analyticsData.benchmark.algorithm, analyticsData.benchmark.benchmark_size, analyticsData.benchmark.repetitions], ['DETERMINISTIC_AGGREGATION', 0, 2]);
+    const analyticsInvalid = await fetch(`${base}/api/v1/analytics/analyse`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ records: [], algorithm: 'MAGIC_FAST' }) });
+    assert.equal(analyticsInvalid.status, 400);
     const computed = await fetch(`${base}/api/v1/rankings/compute`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ drive_id: 'D001' }) });
     const payload = await computed.json() as { data: { ranking_id: string } };
     const retrieved = await fetch(`${base}/api/v1/rankings/${payload.data.ranking_id}`);
     assert.equal(retrieved.status, 200);
     assert.deepEqual((await retrieved.json() as { data: unknown }).data, payload.data);
+    const topKResults = await Promise.all([1, 2].map(async (top_k) => {
+      const response = await fetch(`${base}/api/v1/rankings/compute`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ drive_id: 'D001', algorithm: 'HEAP_TOPK', top_k }) });
+      return (await response.json() as { data: { ranking_id: string; ordered_candidates: unknown[] } }).data;
+    }));
+    assert.notEqual(topKResults[0].ranking_id, topKResults[1].ranking_id);
+    for (let i = 0; i < topKResults.length; i++) {
+      const response = await fetch(`${base}/api/v1/rankings/${topKResults[i].ranking_id}`);
+      assert.equal(response.status, 200);
+      assert.equal(((await response.json() as { data: { ordered_candidates: unknown[] } }).data).ordered_candidates.length, i + 1);
+    }
     const missing = await fetch(`${base}/api/v1/rankings/unknown-id`);
     const missingPayload = await missing.json() as { error: { code: string } };
     assert.equal(missing.status, 404);

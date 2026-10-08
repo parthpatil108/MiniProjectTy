@@ -10,7 +10,7 @@ import { AnalyticsService } from '../services/analyticsService';
 import { RankingMetricsService } from '../services/rankingMetricsService';
 import { success, failure } from '../services/apiEnvelope';
 
-import type { HistoricalPlacementRecord, RankingAlgorithm } from '../types';
+import type { HistoricalPlacementRecord, OptimizationMetric, RankingAlgorithm, RankingConstraints } from '../types';
 
 export interface ApiContext {
   registry: ProfileRegistryService;
@@ -251,6 +251,24 @@ export async function handleRequest(
         return;
       }
 
+      if (input.optimization_metric !== undefined && typeof input.optimization_metric !== 'string') {
+        sendJson(res, 400, failure('VALIDATION_ERROR', 'optimization_metric must be a string.', correlationId, 'optimization_metric'));
+        return;
+      }
+      const optimizationMetric = (input.optimization_metric ?? 'SCORE_DESC') as OptimizationMetric;
+
+      if (input.candidate_pool !== undefined && (!Array.isArray(input.candidate_pool) || input.candidate_pool.some((id) => typeof id !== 'string' || !id.trim()))) {
+        sendJson(res, 400, failure('VALIDATION_ERROR', 'candidate_pool must be an array of non-empty student IDs.', correlationId, 'candidate_pool'));
+        return;
+      }
+      const candidatePool = input.candidate_pool as string[] | undefined;
+
+      if (input.constraints !== undefined && (!input.constraints || typeof input.constraints !== 'object' || Array.isArray(input.constraints))) {
+        sendJson(res, 400, failure('VALIDATION_ERROR', 'constraints must be an object.', correlationId, 'constraints'));
+        return;
+      }
+      const constraints = input.constraints as RankingConstraints | undefined;
+
       const graphVersion =
         typeof input.graph_version === 'string'
           ? input.graph_version
@@ -282,6 +300,9 @@ export async function handleRequest(
         driveId,
         algorithm: algorithm as RankingAlgorithm,
         topK,
+        optimizationMetric,
+        candidatePool,
+        constraints,
       });
 
       sendJson(res, 200, success(result, correlationId));
@@ -398,11 +419,25 @@ export async function handleRequest(
             }
           : {};
 
+      if (input.algorithm !== undefined && typeof input.algorithm !== 'string') {
+        sendJson(res, 400, failure('VALIDATION_ERROR', 'algorithm must be a string.', correlationId, 'algorithm'));
+        return;
+      }
+      if (input.repetitions !== undefined && typeof input.repetitions !== 'number') {
+        sendJson(res, 400, failure('VALIDATION_ERROR', 'repetitions must be a number.', correlationId, 'repetitions'));
+        return;
+      }
+      if (input.benchmark_size !== undefined && typeof input.benchmark_size !== 'number') {
+        sendJson(res, 400, failure('VALIDATION_ERROR', 'benchmark_size must be a number.', correlationId, 'benchmark_size'));
+        return;
+      }
+
       const analytics = new AnalyticsService(records);
 
       const result = analytics.analyse(
         filters,
         correlationId,
+        { algorithm: input.algorithm as string | undefined, repetitions: input.repetitions as number | undefined, benchmarkSize: input.benchmark_size as number | undefined },
       );
 
       sendJson(res, result.status, result.body);

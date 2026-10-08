@@ -2,9 +2,12 @@ import type { HistoricalPlacementRecord, PlacementStage } from '../types';
 import { assertCorrelationId, failure, success } from './apiEnvelope';
 
 export interface AnalyticsFilters { department_filter?: string; batch?: string }
+export const SUPPORTED_ANALYTICS_ALGORITHM = 'DETERMINISTIC_AGGREGATION' as const;
+export interface AnalyticsRunOptions { algorithm?: string; repetitions?: number; benchmarkSize?: number }
 export interface DepartmentTrend { department: string; batch: string; represented_students: number; placed_students: number; placement_rate: number }
 export interface PackageDistribution { buckets: Record<string, number>; missing_or_invalid: number; valid_placed_records: number }
-export interface AnalyticsResult { department_trend: Record<string, DepartmentTrend>; conversion_rate: number; package_distribution: PackageDistribution }
+export interface CompanyConversion { applied: number; placed: number; conversion_rate: number }
+export interface AnalyticsResult { department_trend: Record<string, DepartmentTrend>; conversion_rate: number; company_conversion: Record<string, CompanyConversion>; package_distribution: PackageDistribution }
 export function validateAnalyticsFilters(filters: unknown): AnalyticsFilters {
   if (!filters || typeof filters !== 'object' || Array.isArray(filters)) throw new TypeError('Analytics filters must be an object.');
   const value = filters as Record<string, unknown>;
@@ -67,6 +70,7 @@ export function analysePlacements(records: HistoricalPlacementRecord[], filters:
   }
   const applied = [...companies.values()].reduce((n, c) => n + c.applied.size, 0);
   const placed = [...companies.values()].reduce((n, c) => n + c.placed.size, 0);
+  const company_conversion = Object.fromEntries([...companies.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([company, counts]) => [company, { applied: counts.applied.size, placed: counts.placed.size, conversion_rate: counts.applied.size ? counts.placed.size / counts.applied.size * 100 : 0 }]));
   const buckets: Record<string, number> = Object.fromEntries(BUCKETS.map((b) => [b.label, 0]));
   let missing_or_invalid = 0; let valid_placed_records = 0;
   for (const r of filtered) if (r.stage === 'Placed') {
@@ -75,15 +79,25 @@ export function analysePlacements(records: HistoricalPlacementRecord[], filters:
     const bucket = BUCKETS.find((b) => value >= b.min && value < b.max)!;
     buckets[bucket.label]++; valid_placed_records++;
   }
-  return { department_trend, conversion_rate: applied ? placed / applied * 100 : 0, package_distribution: { buckets, missing_or_invalid, valid_placed_records } };
+  return { department_trend, conversion_rate: applied ? placed / applied * 100 : 0, company_conversion, package_distribution: { buckets, missing_or_invalid, valid_placed_records } };
 }
 
 export class AnalyticsService {
   constructor(private readonly records: HistoricalPlacementRecord[]) {}
-  analyse(filters: AnalyticsFilters, correlationId?: string) {
+  analyse(filters: AnalyticsFilters, correlationId?: string, options: AnalyticsRunOptions = {}) {
     assertCorrelationId(correlationId);
     const validatedFilters = validateAnalyticsFilters(filters);
-    try { return { status: 200 as const, body: success(analysePlacements(this.records, validatedFilters), correlationId) }; }
+    const algorithm = options.algorithm ?? SUPPORTED_ANALYTICS_ALGORITHM;
+    if (algorithm !== SUPPORTED_ANALYTICS_ALGORITHM) return { status: 400 as const, body: failure('VALIDATION_ERROR', `Unsupported analytics algorithm: ${algorithm}`, correlationId, 'algorithm') };
+    const repetitions = options.repetitions ?? 1;
+    if (!Number.isInteger(repetitions) || repetitions < 1 || repetitions > 100) return { status: 400 as const, body: failure('VALIDATION_ERROR', 'repetitions must be an integer from 1 to 100.', correlationId, 'repetitions') };
+    if (options.benchmarkSize !== undefined && (!Number.isInteger(options.benchmarkSize) || options.benchmarkSize < 0 || options.benchmarkSize > 1_000_000 || options.benchmarkSize !== this.records.length)) return { status: 400 as const, body: failure('VALIDATION_ERROR', `benchmark_size must be an integer from 0 to 1000000 and equal the supplied record count (${this.records.length}).`, correlationId, 'benchmark_size') };
+    try {
+      const start = process.hrtime.bigint(); let result: AnalyticsResult | undefined;
+      for (let i = 0; i < repetitions; i++) result = analysePlacements(this.records, validatedFilters);
+      const elapsed_ms = Number(process.hrtime.bigint() - start) / 1_000_000;
+      return { status: 200 as const, body: success({ ...result!, benchmark: { algorithm, benchmark_size: this.records.length, repetitions, elapsed_ms, average_duration_ms: elapsed_ms / repetitions } }, correlationId) };
+    }
     catch (error) { return { status: 400 as const, body: failure('VALIDATION_ERROR', error instanceof Error ? error.message : 'Invalid historical records.', correlationId) }; }
   }
 }

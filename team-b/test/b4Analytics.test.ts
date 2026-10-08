@@ -10,7 +10,7 @@ const data: HistoricalPlacementRecord[] = [
   { student_id: '4', department: 'CSE', batch: '2026', company: 'Other', stage: 'Placed' },
 ];
 test('B4 handles empty data and emits zero metrics deterministically', () => {
-  assert.deepEqual(analysePlacements([]), { department_trend: {}, conversion_rate: 0, package_distribution: { buckets: { '0-<3 LPA': 0, '3-<6 LPA': 0, '6-<10 LPA': 0, '10+ LPA': 0 }, missing_or_invalid: 0, valid_placed_records: 0 } });
+  assert.deepEqual(analysePlacements([]), { department_trend: {}, conversion_rate: 0, company_conversion: {}, package_distribution: { buckets: { '0-<3 LPA': 0, '3-<6 LPA': 0, '6-<10 LPA': 0, '10+ LPA': 0 }, missing_or_invalid: 0, valid_placed_records: 0 } });
 });
 test('cohort, department and batch filters have expected aggregates and stable ordering', () => {
   const result = analysePlacements(data); const cohorts = Object.values(result.department_trend); const cse = cohorts[0]; assert.deepEqual([cse.department, cse.batch, cse.represented_students, cse.placed_students], ['CSE', '2026', 3, 2]); assert.ok(Math.abs(cse.placement_rate - 200 / 3) < 1e-10); assert.deepEqual(cohorts[1], { department: 'ECE', batch: '2025', represented_students: 1, placed_students: 1, placement_rate: 100 });
@@ -19,6 +19,7 @@ test('cohort, department and batch filters have expected aggregates and stable o
 });
 test('company conversion deduplicates student-company applications and placement outcomes', () => {
   assert.equal(analysePlacements(data).conversion_rate, 75); // 3 placed student-company records / 4 applied student-company records.
+  assert.deepEqual(analysePlacements(data).company_conversion, { Acme: { applied: 2, placed: 1, conversion_rate: 50 }, Beta: { applied: 1, placed: 1, conversion_rate: 100 }, Other: { applied: 1, placed: 1, conversion_rate: 100 } });
 });
 test('package buckets count each valid placed record once and classify missing or invalid values', () => {
   const result = analysePlacements(data).package_distribution; assert.deepEqual(result.buckets, { '0-<3 LPA': 0, '3-<6 LPA': 1, '6-<10 LPA': 0, '10+ LPA': 1 }); assert.equal(result.missing_or_invalid, 1); assert.equal(result.valid_placed_records, 2);
@@ -45,6 +46,26 @@ test('analytics adapter validates filters and externally supplied correlation ID
   assert.throws(() => validateAnalyticsFilters({ batch: 2026 }), /batch must be a string/);
   assert.throws(() => new AnalyticsService([]).analyse({ department_filter: 10 } as unknown as { department_filter?: string }, 'not-a-uuid'), /X-Correlation-ID must be a UUID v4/);
   assert.throws(() => new AnalyticsService([]).analyse({ department_filter: 10 } as unknown as { department_filter?: string }), /department_filter must be a string/);
+});
+
+test('B4 analytics reports the supported aggregation algorithm, benchmark size, and repetitions', () => {
+  const service = new AnalyticsService(data);
+  const response = service.analyse({}, undefined, { algorithm: 'DETERMINISTIC_AGGREGATION', benchmarkSize: data.length, repetitions: 3 });
+  assert.equal(response.status, 200);
+  if (response.status === 200) {
+    const { benchmark, ...analytics } = response.body.data;
+    assert.deepEqual(analytics, analysePlacements(data));
+    assert.equal(benchmark.algorithm, 'DETERMINISTIC_AGGREGATION');
+    assert.equal(benchmark.benchmark_size, data.length);
+    assert.equal(benchmark.repetitions, 3);
+    assert.ok(benchmark.elapsed_ms >= 0);
+    assert.ok(benchmark.average_duration_ms >= 0);
+  }
+  assert.equal(service.analyse({}, undefined, { algorithm: 'UNSUPPORTED' }).status, 400);
+  assert.equal(service.analyse({}, undefined, { repetitions: 0 }).status, 400);
+  assert.equal(service.analyse({}, undefined, { repetitions: 101 }).status, 400);
+  assert.equal(service.analyse({}, undefined, { repetitions: 1.5 }).status, 400);
+  assert.equal(service.analyse({}, undefined, { benchmarkSize: data.length - 1 }).status, 400);
 });
 test('duplicates consolidate to the most advanced observed stage and repeatable ordering', () => {
   const result = analysePlacements(data); assert.deepEqual(analysePlacements([...data].reverse()), result);

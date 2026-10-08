@@ -1,5 +1,5 @@
 import { AdjacencyList } from '../graph/adjacencyList';
-import type { Drive, GraphObject, GraphSummary, Student } from '../types';
+import type { Drive, GraphObject, GraphSummary, ProfileCoverageSummary, Student } from '../types';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -56,7 +56,26 @@ export class ProfileRegistryService {
   getDrive(driveId: string): Drive | null { return this.drives.get(driveId) ?? null; }
   getStudentSkills(studentId: string): string[] { return this.graph.getNeighbors(`student:${studentId}`).filter((node) => node.startsWith('skill:')).map((node) => node.slice('skill:'.length)); }
   getDriveRequiredSkills(driveId: string): string[] { return this.graph.getNeighbors(`drive:${driveId}`).filter((node) => node.startsWith('skill:')).map((node) => node.slice('skill:'.length)); }
-  getGraphSummary(): GraphSummary { return { graph_version: this.graph_version, total_students: this.students.size, total_drives: this.drives.size, representation_type: 'ADJACENCY_LIST' }; }
+  getCoverageSummary(): ProfileCoverageSummary {
+    const studentSkills = new Set<string>(); let total_student_skill_edges = 0;
+    for (const student of this.students.values()) {
+      const skills = new Set(student.skill_tags);
+      total_student_skill_edges += skills.size;
+      for (const skill of skills) studentSkills.add(skill);
+    }
+    let total_drive_skill_edges = 0; let covered_required_skill_pairs = 0;
+    const uncovered_requirements: ProfileCoverageSummary['uncovered_requirements'] = [];
+    for (const drive of [...this.drives.values()].sort((left, right) => left.drive_id.localeCompare(right.drive_id))) {
+      for (const skill of [...new Set(drive.criteria.required_skill_tags)].sort()) {
+        total_drive_skill_edges++;
+        if (studentSkills.has(skill)) covered_required_skill_pairs++;
+        else uncovered_requirements.push({ drive_id: drive.drive_id, skill });
+      }
+    }
+    const uncovered_required_skill_pairs = uncovered_requirements.length;
+    return { total_students: this.students.size, total_drives: this.drives.size, total_student_skill_edges, total_drive_skill_edges, covered_required_skill_pairs, uncovered_required_skill_pairs, coverage_percentage: total_drive_skill_edges ? covered_required_skill_pairs / total_drive_skill_edges * 100 : 0, uncovered_requirements };
+  }
+  getGraphSummary(): GraphSummary { return { graph_version: this.graph_version, total_students: this.students.size, total_drives: this.drives.size, representation_type: 'ADJACENCY_LIST', coverage_summary: this.getCoverageSummary() }; }
   getGraph(): GraphObject { return this.graph.toObject(); }
   private incrementGraphVersion(): void { this.graphVersionNumber += 1; }
 }
