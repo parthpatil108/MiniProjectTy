@@ -1,5 +1,7 @@
 node_modules/
 team-c/data/
+team-c/dist/
 .env
 dist/
 *.log
+
