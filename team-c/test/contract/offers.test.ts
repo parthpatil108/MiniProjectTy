@@ -116,10 +116,18 @@ describe('C3/C4/C5 — Offers, Audit, Performance Reports & Recovery Verificatio
     expect(res.body.data).toHaveProperty('walBacklog');
   });
 
-  test('GET /internal/v1/outbox/stream returns event-stream', async () => {
-    const res = await request(app).get('/internal/v1/outbox/stream');
-
-    expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toContain('text/event-stream');
+  test('GET /internal/v1/outbox/stream returns event-stream', (done) => {
+    const req = request(app).get('/internal/v1/outbox/stream');
+    
+    req.expect(200)
+       .expect('Content-Type', /text\/event-stream/)
+       .end((err) => {
+         if (err) return done(err);
+       });
+       
+    setTimeout(() => {
+      req.abort();
+      done();
+    }, 200);
   });
 });

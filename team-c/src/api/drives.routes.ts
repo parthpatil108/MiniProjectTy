@@ -20,6 +20,19 @@ drivesRouter.get('/api/v1/drives', async (req: Request, res: Response, next: Nex
 });
 
 /**
+ * POST /api/v1/drives
+ * Create a new placement drive
+ */
+drivesRouter.post('/api/v1/drives', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const newDrive = await masterDataService.createDrive(req.body);
+    return sendSuccessResponse(res, req, newDrive, 201);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * GET /api/v1/drives/:driveId/criteria
  * Read drive criteria and seat capacity (C1)
  */

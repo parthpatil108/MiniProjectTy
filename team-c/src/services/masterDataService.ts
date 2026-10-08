@@ -11,6 +11,7 @@ export interface StudentInput {
   backlogs: number;
   attendance: number;
   skill_tags: string[];
+  project_score?: number;
 }
 
 export interface DriveCriteria {
@@ -37,11 +38,44 @@ export interface DriveUpdateInput {
   state?: 'DRAFT' | 'OPEN' | 'CLOSED' | 'ARCHIVED';
 }
 
+const TEAM_B_URL = process.env.TEAM_B_URL || 'http://localhost:3002';
+
+async function syncStudentToTeamB(student: any, correlationId?: string): Promise<void> {
+  try {
+    await fetch(`${TEAM_B_URL}/internal/v1/profiles/students/${student.student_id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(correlationId ? { 'X-Correlation-ID': correlationId } : {}),
+      },
+      body: JSON.stringify(student),
+    });
+  } catch (err: any) {
+    console.warn(`[Team C -> Team B sync] Failed to sync student ${student.student_id}:`, err.message);
+  }
+}
+
+async function syncDriveToTeamB(drive: any, correlationId?: string): Promise<void> {
+  try {
+    await fetch(`${TEAM_B_URL}/internal/v1/profiles/drives/${drive.drive_id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(correlationId ? { 'X-Correlation-ID': correlationId } : {}),
+      },
+      body: JSON.stringify(drive),
+    });
+  } catch (err: any) {
+    console.warn(`[Team C -> Team B sync] Failed to sync drive ${drive.drive_id}:`, err.message);
+  }
+}
+
 export class MasterDataService {
   private customTxnManager?: TransactionManager;
   private customStorageManager?: StorageManager;
 
   constructor(txnManager?: TransactionManager, storageManager?: StorageManager) {
+
     this.customTxnManager = txnManager;
     this.customStorageManager = storageManager;
   }
@@ -78,12 +112,24 @@ export class MasterDataService {
           backlogs: Number(input.backlogs),
           attendance: Number(input.attendance),
           skill_tags: input.skill_tags,
+          project_score: input.project_score !== undefined ? Number(input.project_score) : 0,
         },
         undefined,
         txn
       );
 
       await txnManager.commit(txn);
+
+      syncStudentToTeamB({
+        student_id,
+        name: input.name,
+        branch: input.branch,
+        cgpa: Number(input.cgpa),
+        backlogs: Number(input.backlogs),
+        attendance: Number(input.attendance),
+        skill_tags: input.skill_tags,
+        project_score: input.project_score !== undefined ? Number(input.project_score) : 0,
+      });
 
       return {
         student_id: (record as any)?.student_id || student_id,
@@ -140,6 +186,15 @@ export class MasterDataService {
       );
 
       await txnManager.commit(txn);
+
+      syncDriveToTeamB({
+        drive_id,
+        company: input.company,
+        criteria: input.criteria,
+        seats: Number(input.seats),
+        package: input.package,
+        state: input.state || 'OPEN',
+      });
 
       return {
         drive_id: (record as any)?.drive_id || drive_id,
@@ -215,6 +270,11 @@ export class MasterDataService {
       );
 
       await txnManager.commit(txn);
+
+      const updatedRecord = this.getStorageManager().getById('drives', driveId);
+      if (updatedRecord) {
+        syncDriveToTeamB(updatedRecord);
+      }
 
       return {
         drive_id: (record as any)?.drive_id || driveId,

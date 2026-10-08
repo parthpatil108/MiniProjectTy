@@ -13,7 +13,9 @@ applicationsRouter.post('/', async (req: Request, res: Response, next: NextFunct
   try {
     const idempotencyKey =
       (req.header('Idempotency-Key') || req.header('idempotency-key'))?.trim();
-    const result = await applicationService.createApplication(req.body, idempotencyKey);
+    const correlationId =
+      (req.header('X-Correlation-ID') || req.header('x-correlation-id'))?.trim();
+    const result = await applicationService.createApplication(req.body, idempotencyKey, correlationId);
     return sendSuccessResponse(res, req, result, 201);
   } catch (err) {
     next(err);

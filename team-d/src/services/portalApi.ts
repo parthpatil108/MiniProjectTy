@@ -45,8 +45,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (useMockApi || !apiBaseUrl) throw new Error('MOCK_API');
   const response = await fetch(`${apiBaseUrl}${path}`, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } });
   if (!response.ok) throw new Error('API_UNAVAILABLE');
-  return response.json() as Promise<T>;
+  const json: any = await response.json();
+  return (json && json.data !== undefined ? json.data : json) as T;
 }
+
 
 // These adapters are the BFF boundary. Replace the mock responses with Team A/B/C fetch calls when those services are available.
 export async function fetchDrives(): Promise<PlacementDrive[]> {

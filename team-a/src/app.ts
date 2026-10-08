@@ -12,7 +12,7 @@ import { config } from './config/env';
 
 export function createApp(eligibilityService?: EligibilityService): Express {
   const app = express();
-  const service = eligibilityService || new EligibilityService();
+  const service = eligibilityService || new EligibilityService(undefined, undefined, undefined, undefined, true);
 
   // Global middleware
   app.use(cors());

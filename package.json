@@ -14,6 +14,7 @@
     "dev:c": "npm run dev --prefix team-c",
     "dev:d": "npm run dev --prefix team-d",
     "dev:all": "concurrently \"npm run dev:a\" \"npm run dev:b\" \"npm run dev:c\" \"npm run dev:d\"",
+    "seed": "npm run seed --prefix team-c",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

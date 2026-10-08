@@ -30,35 +30,55 @@ export class WaitForGraph {
     }
   }
 
-  private detectCycle(): boolean {
+  public findCycle(): string[] | null {
     const visited = new Set<string>();
     const recStack = new Set<string>();
+    const parentMap = new Map<string, string>();
 
-    for (const node of this.edges.keys()) {
-      if (this.isCyclic(node, visited, recStack)) {
-        return true;
+    for (const startNode of this.edges.keys()) {
+      if (!visited.has(startNode)) {
+        const cycle = this.dfsCycle(startNode, visited, recStack, parentMap);
+        if (cycle) return cycle;
       }
     }
-    return false;
+    return null;
   }
 
-  private isCyclic(node: string, visited: Set<string>, recStack: Set<string>): boolean {
-    if (!visited.has(node)) {
-      visited.add(node);
-      recStack.add(node);
+  private dfsCycle(
+    node: string,
+    visited: Set<string>,
+    recStack: Set<string>,
+    parentMap: Map<string, string>
+  ): string[] | null {
+    visited.add(node);
+    recStack.add(node);
 
-      const neighbors = this.edges.get(node);
-      if (neighbors) {
-        for (const neighbor of neighbors) {
-          if (!visited.has(neighbor) && this.isCyclic(neighbor, visited, recStack)) {
-            return true;
-          } else if (recStack.has(neighbor)) {
-            return true;
+    const neighbors = this.edges.get(node);
+    if (neighbors) {
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          parentMap.set(neighbor, node);
+          const cycle = this.dfsCycle(neighbor, visited, recStack, parentMap);
+          if (cycle) return cycle;
+        } else if (recStack.has(neighbor)) {
+          const cyclePath: string[] = [neighbor, node];
+          let curr = node;
+          while (parentMap.has(curr) && parentMap.get(curr) !== neighbor) {
+            curr = parentMap.get(curr)!;
+            cyclePath.push(curr);
           }
+          cyclePath.reverse();
+          return cyclePath;
         }
       }
     }
+
     recStack.delete(node);
-    return false;
+    return null;
+  }
+
+  private detectCycle(): boolean {
+    return this.findCycle() !== null;
   }
 }
+

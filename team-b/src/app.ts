@@ -56,14 +56,33 @@ export function createApp(
   });
 
   app.put('/internal/v1/profiles/students/:studentId', (req, res) => {
-    registry.addOrUpdateStudent(req.body);
-    res.status(200).json(success({ accepted: true }, (req as any).correlationId));
+    try {
+      const studentData = {
+        ...req.body,
+        student_id: req.params.studentId || req.body.student_id,
+        project_score: req.body.project_score !== undefined ? Number(req.body.project_score) : 0,
+      };
+      const result = registry.addOrUpdateStudent(studentData);
+      res.status(200).json(success(result, (req as any).correlationId));
+    } catch (e: any) {
+      res.status(400).json(failure('VALIDATION_ERROR', e.message, (req as any).correlationId));
+    }
   });
 
   app.put('/internal/v1/profiles/drives/:driveId', (req, res) => {
-    registry.addOrUpdateDrive(req.body);
-    res.status(200).json(success({ accepted: true }, (req as any).correlationId));
+    try {
+      const driveData = {
+        ...req.body,
+        drive_id: req.params.driveId || req.body.drive_id,
+        skill_weightage: req.body.skill_weightage || (req.body.criteria?.required_skill_tags ? Object.fromEntries(req.body.criteria.required_skill_tags.map((s: string) => [s, 1.0])) : {}),
+      };
+      const result = registry.addOrUpdateDrive(driveData);
+      res.status(200).json(success(result, (req as any).correlationId));
+    } catch (e: any) {
+      res.status(400).json(failure('VALIDATION_ERROR', e.message, (req as any).correlationId));
+    }
   });
+
 
   app.post('/api/v1/analytics/analyse', (req, res) => {
     try {

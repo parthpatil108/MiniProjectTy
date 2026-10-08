@@ -26,7 +26,13 @@ async function syncWithTeamC() {
     const studentsRes = await fetch(`${TEAM_C_URL}/api/v1/students`);
     if (studentsRes.ok) {
       const { data } = await studentsRes.json();
-      data.forEach((student: Student) => registry.addOrUpdateStudent(student));
+      data.forEach((student: Student) => {
+        try {
+          registry.addOrUpdateStudent(student);
+        } catch (e) {
+          console.warn(`Skipping invalid student ${student.student_id}`);
+        }
+      });
     }
     const drivesRes = await fetch(`${TEAM_C_URL}/api/v1/drives`);
     if (drivesRes.ok) {

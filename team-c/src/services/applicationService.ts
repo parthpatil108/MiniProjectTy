@@ -29,7 +29,7 @@ export class ApplicationService {
     return this.customStorageManager || StorageManager.getInstance();
   }
 
-  public async createApplication(input: CreateApplicationInput, idempotencyKey?: string): Promise<any> {
+  public async createApplication(input: CreateApplicationInput, idempotencyKey?: string, correlationId?: string): Promise<any> {
     // 1. Validation
     if (input.consent !== true) {
       const err: AppError = new Error('Student consent must be true to proceed');
@@ -111,11 +111,44 @@ export class ApplicationService {
 
       await txnManager.commit(txn);
 
+      let queuePosition = 1;
+      const TEAM_A_URL = process.env.TEAM_A_URL || 'http://localhost:3001';
+      try {
+        const teamARes = await fetch(`${TEAM_A_URL}/api/v1/eligibility/requests`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Correlation-ID': correlationId || uuidv4(),
+            'Idempotency-Key': idempotencyKey || `idem_${applicationId}`,
+          },
+          body: JSON.stringify({
+            request_id: uuidv4(),
+            application_id: applicationId,
+            student_id: input.student_id,
+            drive_id: input.drive_id,
+            rule_set_version: 'v1.0.0',
+            priority: 'NORMAL',
+            submitted_at: new Date().toISOString(),
+          }),
+        });
+        if (teamARes.ok) {
+          const teamAJson: any = await teamARes.json();
+          if (teamAJson?.data?.queue_position) {
+            queuePosition = teamAJson.data.queue_position;
+          }
+        }
+      } catch (err: any) {
+        // Fallback for isolated tests or when Team A is not yet online
+        console.warn(`[Team C -> Team A] Eligibility request call failed:`, err.message);
+      }
+
       return {
         application_id: (record as any)?.application_id || applicationId,
         state: (record as any)?.state || 'APPLIED',
         version: record?._version || 1,
+        queue_position: queuePosition,
       };
+
     } catch (err) {
       await txnManager.rollback(txn);
       throw err;

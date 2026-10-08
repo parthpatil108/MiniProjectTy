@@ -55,6 +55,34 @@ export class LockManager {
     }
     return { released: false, lease_id: leaseId };
   }
+
+  public analyzeDeadlocks(customEdges?: Array<{ waiter: string; holder: string }>): {
+    deadlock_cycle: string[] | null;
+    prevention_or_recovery_action: string;
+  } {
+    let graph = this.waitGraph;
+    if (customEdges && customEdges.length > 0) {
+      graph = new WaitForGraph();
+      for (const edge of customEdges) {
+        graph.addEdge(edge.waiter, edge.holder);
+      }
+    }
+
+    const cycle = graph.findCycle();
+    if (cycle && cycle.length > 0) {
+      globalMetricsCollector.recordDeadlock();
+      return {
+        deadlock_cycle: cycle,
+        prevention_or_recovery_action: 'ABORT_YOUNGEST_TRANSACTION'
+      };
+    }
+
+    return {
+      deadlock_cycle: null,
+      prevention_or_recovery_action: 'NO_DEADLOCK'
+    };
+  }
 }
 
 export const globalLockManager = new LockManager();
+

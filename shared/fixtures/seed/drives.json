@@ -1,0 +1,87 @@
+[
+  {
+    "drive_id": "550e8400-e29b-41d4-a716-446655440001",
+    "company": "TechCorp Inc.",
+    "criteria": {
+      "min_cgpa": 7.5,
+      "max_backlogs": 0,
+      "allowed_branches": ["CSE", "IT", "ECE"],
+      "min_attendance": 75.0,
+      "required_skill_tags": ["TypeScript", "Node.js"]
+    },
+    "seats": 5,
+    "package": "12 LPA",
+    "state": "OPEN",
+    "version": 1,
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "updated_at": "2026-08-01T00:00:00.000Z"
+  },
+  {
+    "drive_id": "550e8400-e29b-41d4-a716-446655440002",
+    "company": "InnovateX Labs",
+    "criteria": {
+      "min_cgpa": 8.5,
+      "max_backlogs": 0,
+      "allowed_branches": ["CSE", "IT"],
+      "min_attendance": 85.0,
+      "required_skill_tags": ["Algorithms"]
+    },
+    "seats": 2,
+    "package": "20 LPA",
+    "state": "OPEN",
+    "version": 1,
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "updated_at": "2026-08-01T00:00:00.000Z"
+  },
+  {
+    "drive_id": "550e8400-e29b-41d4-a716-446655440003",
+    "company": "DataScale Systems",
+    "criteria": {
+      "min_cgpa": 7.0,
+      "max_backlogs": 1,
+      "allowed_branches": ["CSE", "IT", "ECE"],
+      "min_attendance": 70.0,
+      "required_skill_tags": ["Python", "SQL"]
+    },
+    "seats": 10,
+    "package": "8 LPA",
+    "state": "OPEN",
+    "version": 1,
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "updated_at": "2026-08-01T00:00:00.000Z"
+  },
+  {
+    "drive_id": "550e8400-e29b-41d4-a716-446655440004",
+    "company": "CoreElectronics Ltd",
+    "criteria": {
+      "min_cgpa": 7.5,
+      "max_backlogs": 0,
+      "allowed_branches": ["ECE"],
+      "min_attendance": 80.0,
+      "required_skill_tags": ["C++"]
+    },
+    "seats": 1,
+    "package": "10 LPA",
+    "state": "OPEN",
+    "version": 1,
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "updated_at": "2026-08-01T00:00:00.000Z"
+  },
+  {
+    "drive_id": "550e8400-e29b-41d4-a716-446655440005",
+    "company": "Draft Ventures",
+    "criteria": {
+      "min_cgpa": 6.0,
+      "max_backlogs": 2,
+      "allowed_branches": ["CSE", "IT", "ECE", "MECH", "CIVIL"],
+      "min_attendance": 65.0,
+      "required_skill_tags": []
+    },
+    "seats": 15,
+    "package": "5 LPA",
+    "state": "DRAFT",
+    "version": 1,
+    "created_at": "2026-08-01T00:00:00.000Z",
+    "updated_at": "2026-08-01T00:00:00.000Z"
+  }
+]

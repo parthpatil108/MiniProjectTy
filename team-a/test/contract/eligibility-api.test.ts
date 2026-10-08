@@ -13,9 +13,9 @@ describe('Team A - HTTP API Contracts (OpenAPI 3.x Conformance)', () => {
     app = createApp(service);
   });
 
-  describe('GET /health', () => {
+  describe('GET /healthz', () => {
     it('should return UP status', async () => {
-      const res = await request(app).get('/health');
+      const res = await request(app).get('/healthz');
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('UP');
       expect(res.body.service).toBe('team-a-eligibility-engine');

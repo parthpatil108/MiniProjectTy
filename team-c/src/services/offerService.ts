@@ -20,7 +20,23 @@ export interface CompensateOfferInput {
   reason: string;
 }
 
+const TEAM_A_URL = process.env.TEAM_A_URL || 'http://localhost:3001';
+
+
+async function releaseTeamALease(leaseId: string, correlationId?: string): Promise<void> {
+  if (!leaseId) return;
+  try {
+    await fetch(`${TEAM_A_URL}/internal/v1/locks/${leaseId}`, {
+      method: 'DELETE',
+      headers: correlationId ? { 'X-Correlation-ID': correlationId } : {},
+    });
+  } catch (err: any) {
+    console.warn(`[Team C -> Team A compensation] Failed to release lease ${leaseId}:`, err.message);
+  }
+}
+
 export class OfferService {
+
   private customTxnManager?: TransactionManager;
   private customStorageManager?: StorageManager;
   private auditService: AuditService;
@@ -83,6 +99,9 @@ export class OfferService {
       // Check seat availability
       if (Number(drive.seats) <= 0) {
         await txnManager.rollback(txn);
+        if (input.lease_id) {
+          releaseTeamALease(input.lease_id, correlationId);
+        }
         return {
           commit_status: 'REJECTED',
           application: app,
@@ -156,6 +175,9 @@ export class OfferService {
       };
     } catch (err) {
       await txnManager.rollback(txn);
+      if (input.lease_id) {
+        releaseTeamALease(input.lease_id, correlationId);
+      }
       throw err;
     }
   }
@@ -189,6 +211,10 @@ export class OfferService {
       );
 
       await txnManager.commit(txn);
+
+      if (input.lease_id) {
+        releaseTeamALease(input.lease_id, correlationId);
+      }
 
       this.auditService.recordAudit({
         actor: 'SYSTEM',

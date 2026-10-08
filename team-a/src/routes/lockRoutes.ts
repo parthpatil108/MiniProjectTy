@@ -54,5 +54,24 @@ export function createLockRouter(): Router {
     }
   });
 
+  router.post('/deadlocks/analyse', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { wait_for_edges } = req.body || {};
+      const result = globalLockManager.analyzeDeadlocks(wait_for_edges);
+
+      res.status(200).json({
+        data: result,
+        meta: {
+          correlation_id: req.correlationId,
+          api_version: 'v1',
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   return router;
 }
+
