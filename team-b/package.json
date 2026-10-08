@@ -8,9 +8,13 @@
     "typecheck": "tsc --noEmit",
     "demo:b1": "npm run build && node dist/src/demo/b1Demo.js",
     "demo:b2": "npm run build && node dist/src/demo/b2Demo.js",
+    "demo:b3": "npm run build && node dist/src/demo/b3Demo.js",
+    "demo:b4": "npm run build && node dist/src/demo/b4Demo.js",
     "test:b1": "npm run build && node --test dist/test/b1Graph.test.js",
     "test:b2": "npm run build && node --test dist/test/b2Ranking.test.js",
-    "test": "npm run build && node --test dist/test/b1Graph.test.js dist/test/b2Ranking.test.js"
+    "test:b3": "npm run build && node --test dist/test/b3Index.test.js",
+    "test:b4": "npm run build && node --test dist/test/b4Analytics.test.js",
+    "test": "npm run build && node --test dist/test/b1Graph.test.js dist/test/b2Ranking.test.js dist/test/b3Index.test.js dist/test/b4Analytics.test.js"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

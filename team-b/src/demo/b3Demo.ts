@@ -1,0 +1,13 @@
+import { createShortlist, RankingService } from '../services/rankingService';
+import { ProfileRegistryService } from '../services/profileRegistryService';
+import { dummyDrives, dummyStudents } from '../data/dummyProfiles';
+import { ShortlistCacheService } from '../services/shortlistCacheService';
+import { ShortlistIndex } from '../services/shortlistIndexService';
+import { candidateIndexKey, ShortlistLookupService } from '../services/shortlistLookupService';
+import { benchmarkIndexes } from '../services/benchmarkService';
+const registry = new ProfileRegistryService(); dummyStudents.forEach((s) => registry.addOrUpdateStudent(s)); dummyDrives.forEach((d) => registry.addOrUpdateDrive(d));
+const candidates = createShortlist(new RankingService(registry).computeRanking({ driveId: 'D001' }).ordered_candidates, 2);
+const cache = new ShortlistCacheService(); const index = new ShortlistIndex('hash'); const lookup = new ShortlistLookupService(index, cache, () => registry.graph_version);
+lookup.putShortlist('D001-shortlist', registry.graph_version, candidates, 60_000);
+console.log('B3 lookup:', JSON.stringify(lookup.getByKey(candidateIndexKey('D001-shortlist', candidates[0]?.student_id ?? 'missing')), null, 2));
+console.log('Index benchmark:', JSON.stringify(benchmarkIndexes(5_000, 10_000), null, 2));

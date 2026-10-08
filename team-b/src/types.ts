@@ -70,6 +70,19 @@ export interface RankedCandidate {
   rank: number;
 }
 
+export interface ShortlistEntry extends RankedCandidate {}
+
+export type PlacementStage = 'Applied' | 'Eligible' | 'Shortlisted' | 'Placed';
+
+export interface HistoricalPlacementRecord {
+  student_id: string;
+  department: string;
+  batch: string;
+  company: string;
+  stage: PlacementStage;
+  package_lpa?: number;
+}
+
 export type RankingAlgorithm = 'WEIGHTED_SCORE' | 'MERGE_SORT' | 'HEAP_TOPK';
 
 export interface RankingResult {
