@@ -1,0 +1,8 @@
+import type { PlacementDrive, View } from '../App';
+
+type SavedDrivesViewProps = { drives: PlacementDrive[]; savedDriveIds: string[]; onToggleSaved: (driveId: string) => void; onNavigate: (view: View) => void };
+
+export function SavedDrivesView({ drives, savedDriveIds, onToggleSaved, onNavigate }: SavedDrivesViewProps) {
+  const saved = drives.filter((drive) => savedDriveIds.includes(drive.id));
+  return <section className="section-page"><header className="topbar"><div><span className="eyebrow">Your shortlist</span><h2>Saved drives</h2><p className="page-context">Keep interesting opportunities close while you decide your next step.</p></div><span className="status-pill">{saved.length} saved</span></header>{saved.length === 0 ? <div className="empty-state"><strong>No saved drives yet.</strong><p>Save a drive from Placement Opportunities to return to it quickly.</p><button className="primary-button compact-button" type="button" onClick={() => onNavigate('Drives')}>Explore drives <span>→</span></button></div> : <div className="section-grid">{saved.map((drive) => <article className="section-card saved-drive-card" key={drive.id}><div className="section-card-header"><strong>{drive.company}</strong><button className="save-button" type="button" onClick={() => onToggleSaved(drive.id)}>♥ Remove</button></div><p>{drive.role}</p><ul><li>{drive.package} · {drive.branches.join(' / ')}</li><li>Closes {drive.deadline}</li><li><span className="status-tag small-tag">{drive.status}</span></li></ul><button className="secondary-button" type="button" onClick={() => onNavigate('Drives')}>Open drive</button></article>)}</div>}</section>;
+}
