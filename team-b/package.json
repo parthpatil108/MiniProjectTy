@@ -6,6 +6,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev src/server.ts",
     "demo:b1": "npm run build && node dist/src/demo/b1Demo.js",
     "demo:b2": "npm run build && node dist/src/demo/b2Demo.js",
     "demo:b3": "npm run build && node dist/src/demo/b3Demo.js",
@@ -17,7 +19,17 @@
     "test": "npm run build && node --test dist/test/b1Graph.test.js dist/test/b2Ranking.test.js dist/test/b3Index.test.js dist/test/b4Analytics.test.js"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^24.0.0",
+    "@types/uuid": "^10.0.0",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.6",
+    "express": "^5.2.1",
+    "uuid": "^14.0.2"
   }
 }

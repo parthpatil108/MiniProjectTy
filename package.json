@@ -1,0 +1,34 @@
+{
+  "name": "miniprojectty",
+  "version": "1.0.0",
+  "description": "This repository contains the campus placement management system built by four teams working together through a shared contract and API model.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "install:all": "npm install && npm install --prefix team-a && npm install --prefix team-b && npm install --prefix team-c && npm install --prefix team-d",
+    "build:all": "npm run build --prefix team-a && npm run build --prefix team-b && npm run build --prefix team-c && npm run build --prefix team-d",
+    "dev:a": "npm run dev --prefix team-a",
+    "dev:b": "npm run dev --prefix team-b",
+    "dev:c": "npm run dev --prefix team-c",
+    "dev:d": "npm run dev --prefix team-d",
+    "dev:all": "concurrently \"npm run dev:a\" \"npm run dev:b\" \"npm run dev:c\" \"npm run dev:d\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/parthpatil108/MiniProjectTy.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/parthpatil108/MiniProjectTy/issues"
+  },
+  "homepage": "https://github.com/parthpatil108/MiniProjectTy#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

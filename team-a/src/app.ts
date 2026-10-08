@@ -20,7 +20,7 @@ export function createApp(eligibilityService?: EligibilityService): Express {
   app.use(idempotencyMiddleware);
 
   // Health endpoint
-  app.get('/health', (req: Request, res: Response) => {
+  app.get('/healthz', (req: Request, res: Response) => {
     res.status(200).json({
       status: 'UP',
       service: config.serviceName,

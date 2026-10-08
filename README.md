@@ -13,39 +13,17 @@ The platform models the complete hiring lifecycle: drive management, student eli
 
 ## Local Setup
 
-### Team C (system of record)
+We have added a unified root script to install and run all services concurrently.
 
 ```bash
-cd team-c
-npm install
-npm run build
-npm run seed
-npm start
-```
+# Install dependencies for root and all 4 teams
+npm run install:all
 
-### Team A
+# Build all 4 teams
+npm run build:all
 
-```bash
-cd team-a
-npm install
-npm run build
-npm run dev
-```
-
-### Team B
-
-```bash
-cd team-b
-npm install
-npm run test
-```
-
-### Team D
-
-```bash
-cd team-d
-npm install
-npm run dev
+# Start all 4 teams concurrently
+npm run dev:all
 ```
 
 After starting the services, open the portal at:
@@ -54,13 +32,34 @@ After starting the services, open the portal at:
 http://localhost:5173/
 ```
 
+### Environment Variables & Ports
+
+Each service has a `.env.example` file. Copy it to `.env` in the respective directory.
+
+**Team A (Eligibility & Rules)**
+- Port: `3001`
+- Env Vars: `PORT`, `NODE_ENV`, `LOG_LEVEL`, `JWT_SIGNING_SECRET`
+
+**Team B (Ranking & Analytics)**
+- Port: `3002`
+- Env Vars: `PORT`, `NODE_ENV`
+
+**Team C (System of Record)**
+- Port: `3003`
+- Env Vars: `PORT`, `NODE_ENV`, `DATA_DIR`
+
+**Team D (BFF & Portal)**
+- Port: `3004` (BFF) / `5173` (Vite UI)
+- Env Vars: `PORT`, `NODE_ENV`, `LOG_LEVEL`, `JWT_SIGNING_SECRET`, `VITE_USE_MOCK_API`, `VITE_API_BASE_URL`
+
 ## Verified Status
 
 The current integrated setup has been validated locally:
-- Team A health endpoint: http://localhost:3001/health
+- Team A health endpoint: http://localhost:3001/healthz
+- Team B health endpoint: http://localhost:3002/healthz
 - Team C health endpoint: http://localhost:3003/healthz
+- Team D BFF health endpoint: http://localhost:3004/healthz
 - Team D frontend: http://localhost:5173/
-- Team B test suite: 24 passing tests
 
 ## Documentation
 
