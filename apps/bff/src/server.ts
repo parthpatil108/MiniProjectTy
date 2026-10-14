@@ -473,6 +473,7 @@ app.get('/api/v1/ui/dashboard', requireAuth(config.JWT_SECRET), async (req: Requ
 
 app.get('/api/v1/ui/stream', (req: Request, res: Response) => {
   const correlationId = getCorrelationId(req);
+  let lastSeenEventId = (req.header('Last-Event-ID') as string) || (req.query.lastEventId as string) || '';
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -485,39 +486,78 @@ app.get('/api/v1/ui/stream', (req: Request, res: Response) => {
     `data: ${JSON.stringify({ type: 'CONNECTED', message: 'SSE stream connected', timestamp: new Date().toISOString() })}\n\n`
   );
 
-  const controller = new AbortController();
-  const serviceHeaders = getServiceAuthHeaders(correlationId);
+  let isClosed = false;
+  let retryDelay = 1000;
+  const maxDelay = 16000;
+  let activeAbortController: AbortController | null = null;
 
-  fetch(`${config.DATA_ENGINE_URL}/internal/v1/outbox/stream`, {
-    signal: controller.signal,
-    headers: serviceHeaders
-  })
-    .then(async (outboxRes) => {
+  async function connectUpstream() {
+    if (isClosed || req.destroyed) return;
+
+    activeAbortController = new AbortController();
+    const headers: Record<string, string> = {
+      ...getServiceAuthHeaders(correlationId),
+      ...(lastSeenEventId ? { 'Last-Event-ID': lastSeenEventId } : {})
+    };
+
+    try {
+      const outboxRes = await fetch(`${config.DATA_ENGINE_URL}/internal/v1/outbox/stream`, {
+        signal: activeAbortController.signal,
+        headers
+      });
+
       if (!outboxRes.ok || !outboxRes.body) {
-        logger.warn({ correlation_id: correlationId }, 'Outbox upstream failed or closed');
-        return;
+        throw new Error(`Upstream outbox stream returned ${outboxRes.status}`);
       }
+
+      // Reset delay on successful connect
+      retryDelay = 1000;
       const reader = outboxRes.body.getReader();
       const decoder = new TextDecoder();
-      while (true) {
+
+      while (!isClosed && !req.destroyed) {
         const { done, value } = await reader.read();
         if (done) break;
-        res.write(decoder.decode(value));
+        const text = decoder.decode(value, { stream: true });
+
+        // Update lastSeenEventId from SSE chunks
+        const idMatches = text.match(/id:\s*([^\r\n]+)/g);
+        if (idMatches) {
+          for (const m of idMatches) {
+            lastSeenEventId = m.replace(/id:\s*/, '').trim();
+          }
+        }
+
+        if (!res.writableEnded) {
+          res.write(text);
+        }
       }
-    })
-    .catch((err) => {
-      if (err.name !== 'AbortError') {
-        logger.warn({ correlation_id: correlationId, error: err.message }, 'Outbox stream disconnected');
+    } catch (err: any) {
+      if (!isClosed && err.name !== 'AbortError') {
+        logger.warn({ correlation_id: correlationId, error: err.message, retryDelay }, 'Outbox upstream disconnected, retrying with backoff');
       }
-    });
+    } finally {
+      if (!isClosed && !req.destroyed && config.NODE_ENV !== 'test') {
+        setTimeout(connectUpstream, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, maxDelay);
+      }
+    }
+  }
+
+  connectUpstream();
 
   const interval = setInterval(() => {
-    res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT', timestamp: new Date().toISOString() })}\n\n`);
-  }, 10000);
+    if (!res.writableEnded && !req.destroyed) {
+      res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT', timestamp: new Date().toISOString() })}\n\n`);
+    }
+  }, 15000);
 
   req.on('close', () => {
+    isClosed = true;
     clearInterval(interval);
-    controller.abort();
+    if (activeAbortController) {
+      activeAbortController.abort();
+    }
     res.end();
   });
 });

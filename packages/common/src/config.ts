@@ -37,9 +37,18 @@ export const configSchema = z.object({
 
 export type AppConfig = z.infer<typeof configSchema>;
 
+import dotenv from 'dotenv';
+
 let cachedConfig: AppConfig | null = null;
 
 export function loadConfig(envOverrides: Record<string, string | undefined> = {}): AppConfig {
+  dotenv.config();
+  try {
+    dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+  } catch {
+    // ignore
+  }
+
   const env = { ...process.env, ...envOverrides };
   
   // Normalize legacy secret names if present
@@ -49,7 +58,10 @@ export function loadConfig(envOverrides: Record<string, string | undefined> = {}
   const isTest = env.NODE_ENV === 'test' || 
                  process.env.NODE_ENV === 'test' || 
                  process.env.JEST_WORKER_ID !== undefined ||
-                 (process.env.npm_lifecycle_event && process.env.npm_lifecycle_event.includes('test'));
+                 (process.env.npm_lifecycle_event && (
+                   process.env.npm_lifecycle_event.includes('test') ||
+                   process.env.npm_lifecycle_event.includes('seed')
+                 ));
 
   if (isTest && env.NODE_ENV !== 'production') {
     if (!env.NODE_ENV) env.NODE_ENV = 'test';

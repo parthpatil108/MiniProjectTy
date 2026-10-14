@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-14T06:47:26.293Z",
+  "timestamp": "2026-10-14T07:44:07.878Z",
   "kpis": {
     "rule_evaluation_correctness": {
       "target": "100% match with reference decisions",
@@ -9,8 +9,8 @@
     },
     "decision_latency": {
       "target": "p95 <= 200 ms for 1,000 queued requests",
-      "actual_p95_ms": 0.18,
-      "actual_avg_ms": 0.09,
+      "actual_p95_ms": 0.2,
+      "actual_avg_ms": 0.1,
       "total_requests": 1000,
       "status": "PASSED"
     },

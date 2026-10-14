@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "description": "Deterministic seed fixtures for ApniLeap",
-  "type": "module",
-  "main": "index.js"
+  "main": "index.js",
+  "types": "index.d.ts"
 }

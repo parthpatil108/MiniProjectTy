@@ -19,12 +19,13 @@ export class WalWriter {
   private checkpointFilePath: string;
   private currentLsn: number = 0;
 
-  constructor(dataDir: string = path.join(process.cwd(), 'data')) {
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+  constructor(dataDir?: string) {
+    const dir = dataDir || process.env.DATA_DIR || path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
-    this.walFilePath = path.join(dataDir, 'wal.log');
-    this.checkpointFilePath = path.join(dataDir, 'wal.checkpoint');
+    this.walFilePath = path.join(dir, 'wal.log');
+    this.checkpointFilePath = path.join(dir, 'wal.checkpoint');
     this.initLsn();
   }
 

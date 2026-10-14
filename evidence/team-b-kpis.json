@@ -15,7 +15,7 @@
       "category": "Team B",
       "name": "Computation latency",
       "target": "p95 <= 100 ms for reference skill graph",
-      "measured": "p95 = 0.33 ms (avg = 0.09 ms)",
+      "measured": "p95 = 0.19 ms (avg = 0.06 ms)",
       "status": "PASS",
       "details": "Repeated ranking benchmark across candidate cohort."
     },

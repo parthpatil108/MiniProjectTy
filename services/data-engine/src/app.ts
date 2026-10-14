@@ -11,6 +11,7 @@ import { reportsRouter } from './api/reports.routes.js';
 import { recoveryRouter } from './api/recovery.routes.js';
 import { outboxRouter } from './api/outbox.routes.js';
 import { usersRouter } from './api/users.routes.js';
+import { seedRouter } from './api/seed.routes.js';
 import { requireServiceAuth, loadConfig, createSuccessEnvelope } from '@apnileap/common';
 
 const config = loadConfig();
@@ -44,6 +45,7 @@ app.use(reportsRouter);
 app.use(recoveryRouter);
 app.use(outboxRouter);
 app.use(usersRouter);
+app.use(seedRouter);
 
 // Error Handling Middleware
 app.use(errorHandlerMiddleware);

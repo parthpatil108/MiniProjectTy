@@ -20,7 +20,7 @@
     "dev:all": "npm run dev",
     "start": "concurrently \"npm run start --workspace=@apnileap/eligibility\" \"npm run start --workspace=@apnileap/ranking\" \"npm run start --workspace=@apnileap/data-engine\" \"npm run start --workspace=@apnileap/bff\"",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "seed": "npm run seed --workspace=@apnileap/data-engine",
+    "seed": "tsx scripts/seed.ts",
     "test:a": "npm run test --workspace=@apnileap/eligibility",
     "test:b": "npm run test --workspace=@apnileap/ranking",
     "test:c": "npm run test --workspace=@apnileap/data-engine",

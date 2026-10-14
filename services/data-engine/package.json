@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@apnileap/common": "*",
+    "@apnileap/fixtures": "*",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^8.7.1",

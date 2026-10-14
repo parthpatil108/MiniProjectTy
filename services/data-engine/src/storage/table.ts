@@ -312,8 +312,23 @@ export class StorageTable<T extends BaseRecord = BaseRecord> {
       fs.mkdirSync(dataDir, { recursive: true });
     }
     const filePath = path.join(dataDir, `${this.tableName}.json`);
+    const tempFilePath = path.join(
+      dataDir,
+      `${this.tableName}.json.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`
+    );
     const recordsArray = Array.from(this.records.values());
-    fs.writeFileSync(filePath, JSON.stringify(recordsArray, null, 2), 'utf-8');
+    const data = JSON.stringify(recordsArray, null, 2);
+
+    const fd = fs.openSync(tempFilePath, 'w');
+    try {
+      fs.writeFileSync(fd, data, 'utf-8');
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+
+    // Atomic replace
+    fs.renameSync(tempFilePath, filePath);
   }
 
   public loadFromFile(dataDir: string): void {

@@ -3,6 +3,7 @@ import { TransactionManager } from '../txn/transactionManager.js';
 import { StorageManager } from '../storage/storageManager.js';
 import { BaseRecord } from '../storage/table.js';
 import { AppError } from '../api/middleware/errorEnvelope.js';
+import { OutboxService } from './outboxService.js';
 
 export interface StudentInput {
   name: string;
@@ -42,7 +43,7 @@ async function syncStudentToTeamB(student: any, correlationId?: string): Promise
   const teamBUrl = process.env.TEAM_B_URL || 'http://localhost:3002';
   const internalSecret = process.env.INTERNAL_SERVICE_SECRET || 'internal-service-auth-key-2026-secure';
   try {
-    await fetch(`${teamBUrl}/internal/v1/profiles/students/${student.student_id}`, {
+    const res = await fetch(`${teamBUrl}/internal/v1/profiles/students/${student.student_id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -51,8 +52,11 @@ async function syncStudentToTeamB(student: any, correlationId?: string): Promise
       },
       body: JSON.stringify(student),
     });
+    if (!res.ok) {
+      new OutboxService().recordEvent('SYNC_STUDENT_PROFILE', student.student_id, student, 'FAILED');
+    }
   } catch (err: any) {
-    console.warn(`[Team C -> Team B sync] Failed to sync student ${student.student_id}:`, err.message);
+    new OutboxService().recordEvent('SYNC_STUDENT_PROFILE', student.student_id, student, 'FAILED');
   }
 }
 
@@ -60,7 +64,7 @@ async function syncDriveToTeamB(drive: any, correlationId?: string): Promise<voi
   const teamBUrl = process.env.TEAM_B_URL || 'http://localhost:3002';
   const internalSecret = process.env.INTERNAL_SERVICE_SECRET || 'internal-service-auth-key-2026-secure';
   try {
-    await fetch(`${teamBUrl}/internal/v1/profiles/drives/${drive.drive_id}`, {
+    const res = await fetch(`${teamBUrl}/internal/v1/profiles/drives/${drive.drive_id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -69,8 +73,11 @@ async function syncDriveToTeamB(drive: any, correlationId?: string): Promise<voi
       },
       body: JSON.stringify(drive),
     });
+    if (!res.ok) {
+      new OutboxService().recordEvent('SYNC_DRIVE_PROFILE', drive.drive_id, drive, 'FAILED');
+    }
   } catch (err: any) {
-    console.warn(`[Team C -> Team B sync] Failed to sync drive ${drive.drive_id}:`, err.message);
+    new OutboxService().recordEvent('SYNC_DRIVE_PROFILE', drive.drive_id, drive, 'FAILED');
   }
 }
 

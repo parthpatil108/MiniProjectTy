@@ -4,6 +4,7 @@ import { StorageManager } from '../storage/storageManager.js';
 import { ApplicationStateMachine, ApplicationState } from './stateMachine.js';
 import { BaseRecord } from '../storage/table.js';
 import { AppError } from '../api/middleware/errorEnvelope.js';
+import { OutboxService } from './outboxService.js';
 
 export interface CreateApplicationInput {
   student_id: string;
@@ -111,35 +112,55 @@ export class ApplicationService {
 
       await txnManager.commit(txn);
 
+      // Record in Outbox table so request is never lost
+      const outboxService = new OutboxService(this.getStorageManager());
+      const eligibilityPayload = {
+        request_id: uuidv4(),
+        application_id: applicationId,
+        student_id: input.student_id,
+        drive_id: input.drive_id,
+        rule_set_version: 'v1.0.0',
+        priority: 'NORMAL',
+        submitted_at: new Date().toISOString(),
+        correlation_id: correlationId,
+        idempotency_key: idempotencyKey || `idem_${applicationId}`,
+      };
+
+      const outboxEvent = outboxService.recordEvent(
+        'ELIGIBILITY_CHECK_REQUEST',
+        applicationId,
+        eligibilityPayload,
+        'PENDING'
+      );
+
       let queuePosition = 1;
-      const TEAM_A_URL = process.env.TEAM_A_URL || 'http://localhost:3001';
+      const TEAM_A_URL = process.env.TEAM_A_URL || process.env.ELIGIBILITY_URL || 'http://localhost:3001';
+      const internalSecret = process.env.INTERNAL_SERVICE_SECRET || 'internal-service-auth-key-2026-secure';
+
       try {
         const teamARes = await fetch(`${TEAM_A_URL}/api/v1/eligibility/requests`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Service-Token': internalSecret,
             'X-Correlation-ID': correlationId || uuidv4(),
             'Idempotency-Key': idempotencyKey || `idem_${applicationId}`,
           },
-          body: JSON.stringify({
-            request_id: uuidv4(),
-            application_id: applicationId,
-            student_id: input.student_id,
-            drive_id: input.drive_id,
-            rule_set_version: 'v1.0.0',
-            priority: 'NORMAL',
-            submitted_at: new Date().toISOString(),
-          }),
+          body: JSON.stringify(eligibilityPayload),
         });
         if (teamARes.ok) {
           const teamAJson: any = await teamARes.json();
           if (teamAJson?.data?.queue_position) {
             queuePosition = teamAJson.data.queue_position;
           }
+          outboxService.updateEventStatus(outboxEvent.event_id, 'PROCESSED');
+        } else {
+          const errText = await teamARes.text();
+          outboxService.updateEventStatus(outboxEvent.event_id, 'FAILED', `Status ${teamARes.status}: ${errText}`);
         }
       } catch (err: any) {
-        // Fallback for isolated tests or when Team A is not yet online
-        console.warn(`[Team C -> Team A] Eligibility request call failed:`, err.message);
+        // Outbox keeps the request and retries with backoff
+        outboxService.updateEventStatus(outboxEvent.event_id, 'FAILED', err.message);
       }
 
       return {

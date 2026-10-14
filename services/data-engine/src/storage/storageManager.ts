@@ -8,8 +8,8 @@ export class StorageManager {
   private tables: Map<string, StorageTable<any>> = new Map();
   private dataDir: string;
 
-  constructor(dataDir: string = path.join(process.cwd(), 'data')) {
-    this.dataDir = dataDir;
+  constructor(dataDir?: string) {
+    this.dataDir = dataDir || process.env.DATA_DIR || path.join(process.cwd(), 'data');
     this.initTables();
     this.loadAllTables();
   }
