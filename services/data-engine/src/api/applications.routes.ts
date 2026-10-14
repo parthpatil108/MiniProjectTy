@@ -23,6 +23,22 @@ applicationsRouter.post('/', async (req: Request, res: Response, next: NextFunct
 });
 
 /**
+ * GET /api/v1/applications
+ * List applications optionally filtered by student_id or drive_id
+ */
+applicationsRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const studentId = req.query.student_id as string | undefined;
+    const driveId = req.query.drive_id as string | undefined;
+    const records = await applicationService.getAllApplications({ student_id: studentId, drive_id: driveId });
+    return sendSuccessResponse(res, req, records, 200);
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+/**
  * GET /api/v1/applications/:applicationId
  * Read application state and referenced decision/ranking (C2)
  */

@@ -1,0 +1,113 @@
+.apni-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  outline: none;
+  gap: 8px;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.apni-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--border-focus);
+}
+
+.apni-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Sizes */
+.apni-btn--sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  height: 32px;
+}
+
+.apni-btn--md {
+  padding: 8px 16px;
+  font-size: 14px;
+  height: 40px;
+}
+
+.apni-btn--lg {
+  padding: 12px 24px;
+  font-size: 16px;
+  height: 48px;
+}
+
+/* Variants */
+.apni-btn--primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px -2px var(--primary-glow);
+}
+
+.apni-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px 0 var(--primary-glow);
+}
+
+.apni-btn--secondary {
+  background: var(--bg-surface-elevated);
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+.apni-btn--secondary:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  border-color: var(--text-muted);
+}
+
+.apni-btn--outline {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+.apni-btn--outline:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-text);
+  background: var(--primary-subtle);
+}
+
+.apni-btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.apni-btn--ghost:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  color: var(--text-main);
+}
+
+.apni-btn--danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.apni-btn--danger:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+/* Spinner */
+.apni-btn__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: apni-spin 0.6s linear infinite;
+}
+
+@keyframes apni-spin {
+  to { transform: rotate(360deg); }
+}

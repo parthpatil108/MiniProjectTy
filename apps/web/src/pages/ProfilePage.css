@@ -1,0 +1,143 @@
+.apni-profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.apni-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.apni-profile-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--space-6);
+}
+
+.apni-profile-card {
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.apni-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-3);
+}
+
+.apni-card-header h3 {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.apni-card-icon {
+  color: var(--primary);
+}
+
+.apni-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.apni-profile-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.apni-status-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.apni-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.apni-policy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+  margin-top: var(--space-2);
+}
+
+.apni-skills-desc {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+}
+
+.apni-skills-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 48px;
+}
+
+.apni-skill-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px 10px;
+  background: var(--primary-muted);
+  color: var(--primary-hover);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 500;
+}
+
+.apni-skill-remove {
+  background: transparent;
+  border: none;
+  color: var(--primary-hover);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  margin-left: 2px;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.apni-skill-remove:hover {
+  opacity: 1;
+}
+
+.apni-skill-add-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.apni-skill-add-row .apni-input-container {
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .apni-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}

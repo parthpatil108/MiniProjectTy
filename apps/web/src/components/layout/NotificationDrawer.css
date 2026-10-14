@@ -1,0 +1,162 @@
+.apni-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.apni-drawer {
+  width: 100%;
+  max-width: 400px;
+  height: 100vh;
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  animation: apni-drawer-slide-in 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apni-drawer__header {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.apni-drawer__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.apni-drawer__icon {
+  color: var(--primary);
+}
+
+.apni-drawer__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.apni-drawer__close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.apni-drawer__close:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-main);
+}
+
+.apni-drawer__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.apni-drawer__stream-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.apni-drawer__stream-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--success);
+}
+
+.apni-notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.apni-notification-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition-fast);
+}
+
+.apni-notification-card:hover {
+  transform: translateY(-1px);
+}
+
+.apni-notification-card__icon {
+  margin-top: 2px;
+}
+
+.apni-notification-card--success .apni-notification-card__icon {
+  color: var(--success);
+}
+
+.apni-notification-card--info .apni-notification-card__icon {
+  color: var(--info);
+}
+
+.apni-notification-card--warning .apni-notification-card__icon {
+  color: var(--warning);
+}
+
+.apni-notification-card__body {
+  flex: 1;
+}
+
+.apni-notification-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.apni-notification-card__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.apni-notification-card__time {
+  font-size: 11px;
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.apni-notification-card__msg {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+@keyframes apni-drawer-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}

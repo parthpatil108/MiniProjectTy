@@ -164,10 +164,104 @@ export class MasterDataService {
       backlogs: r.backlogs,
       attendance: r.attendance,
       skill_tags: r.skill_tags,
+      skills: r.skills || r.skill_tags || [],
       version: r._version || 1,
       created_at: r._createdAt,
     }));
   }
+
+  public async getStudentById(studentId: string): Promise<any> {
+    const r = this.getStorageManager().getById('students', studentId);
+    if (!r) {
+      const err: AppError = new Error(`Student ${studentId} not found`);
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+    return {
+      student_id: r.student_id,
+      name: r.name,
+      branch: r.branch,
+      cgpa: r.cgpa,
+      backlogs: r.backlogs,
+      attendance: r.attendance,
+      skill_tags: r.skill_tags,
+      skills: r.skills || r.skill_tags || [],
+      resume_url: r.resume_url,
+      github_url: r.github_url,
+      linkedin_url: r.linkedin_url,
+      version: r._version || 1,
+      created_at: r._createdAt,
+    };
+  }
+
+  public async updateStudent(studentId: string, updates: Partial<StudentInput> & any): Promise<any> {
+    const existing = this.getStorageManager().getById('students', studentId);
+    if (!existing) {
+      return this.createStudent({
+        name: updates.name || studentId,
+        branch: updates.branch || 'CSE',
+        cgpa: updates.cgpa !== undefined ? Number(updates.cgpa) : 8.0,
+        backlogs: updates.backlogs !== undefined ? Number(updates.backlogs) : 0,
+        attendance: updates.attendance !== undefined ? Number(updates.attendance) : 85,
+        skill_tags: updates.skills || updates.skill_tags || ['General']
+      });
+    }
+
+    const txnManager = this.getTxnManager();
+    const txn = txnManager.beginTransaction();
+    try {
+      const updated = await txnManager.write<BaseRecord>(
+        'students',
+        studentId,
+        'UPDATE',
+        {
+          ...(updates.name ? { name: updates.name } : {}),
+          ...(updates.branch ? { branch: updates.branch } : {}),
+          ...(updates.cgpa !== undefined ? { cgpa: Number(updates.cgpa) } : {}),
+          ...(updates.backlogs !== undefined ? { backlogs: Number(updates.backlogs) } : {}),
+          ...(updates.attendance !== undefined ? { attendance: Number(updates.attendance) } : {}),
+          ...(updates.skills ? { skill_tags: updates.skills, skills: updates.skills } : {}),
+          ...(updates.resume_url ? { resume_url: updates.resume_url } : {}),
+          ...(updates.github_url ? { github_url: updates.github_url } : {}),
+          ...(updates.linkedin_url ? { linkedin_url: updates.linkedin_url } : {}),
+        },
+        updates.version || existing._version,
+        txn
+      );
+      await txnManager.commit(txn);
+
+      syncStudentToTeamB({
+        student_id: studentId,
+        name: updated?.name || existing.name,
+        branch: updated?.branch || existing.branch,
+        cgpa: Number(updated?.cgpa ?? existing.cgpa),
+        backlogs: Number(updated?.backlogs ?? existing.backlogs),
+        attendance: Number(updated?.attendance ?? existing.attendance),
+        skill_tags: updated?.skill_tags || existing.skill_tags || [],
+      });
+
+      return {
+        student_id: studentId,
+        name: updated?.name || existing.name,
+
+        branch: updated?.branch || existing.branch,
+        cgpa: updated?.cgpa ?? existing.cgpa,
+        backlogs: updated?.backlogs ?? existing.backlogs,
+        attendance: updated?.attendance ?? existing.attendance,
+        skill_tags: updated?.skill_tags || existing.skill_tags,
+        skills: updated?.skills || updated?.skill_tags || existing.skill_tags,
+        resume_url: updated?.resume_url,
+        github_url: updated?.github_url,
+        linkedin_url: updated?.linkedin_url,
+        version: updated?._version,
+        updated_at: updated?._updatedAt
+      };
+    } catch (err) {
+      await txnManager.rollback(txn);
+      throw err;
+    }
+  }
+
 
   public async createDrive(input: DriveInput): Promise<any> {
     if (!input.company || !input.criteria || input.seats === undefined || !input.package) {

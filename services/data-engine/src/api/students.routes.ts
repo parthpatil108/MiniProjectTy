@@ -30,3 +30,30 @@ studentsRouter.post('/', async (req: Request, res: Response, next: NextFunction)
     next(err);
   }
 });
+
+/**
+ * GET /api/v1/students/:studentId
+ * Get a student profile
+ */
+studentsRouter.get('/:studentId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const student = await masterDataService.getStudentById(req.params.studentId);
+    return sendSuccessResponse(res, req, student, 200);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PUT /api/v1/students/:studentId
+ * Update or upsert student profile
+ */
+studentsRouter.put('/:studentId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const updated = await masterDataService.updateStudent(req.params.studentId, req.body);
+    return sendSuccessResponse(res, req, updated, 200);
+  } catch (err) {
+    next(err);
+  }
+});
+

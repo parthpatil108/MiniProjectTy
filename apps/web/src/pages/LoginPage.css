@@ -1,0 +1,183 @@
+.apni-login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.1) 0%, transparent 50%),
+              var(--bg-app);
+}
+
+.apni-login-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 40px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: apni-scale-up 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apni-login-header {
+  text-align: center;
+}
+
+.apni-login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.apni-login-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary) 0%, #38bdf8 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  box-shadow: var(--shadow-glow);
+}
+
+.apni-login-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.apni-login-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.apni-login-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--danger-subtle);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--danger-text);
+  font-size: 13px;
+}
+
+.apni-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.apni-password-field {
+  position: relative;
+}
+
+.apni-password-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.apni-password-toggle:hover {
+  color: var(--text-main);
+}
+
+.apni-login-submit-btn {
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* Demo Section */
+.apni-demo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.apni-demo-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-subtle);
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.apni-demo-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.apni-demo-btn {
+  padding: 10px 8px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  transition: all var(--transition-fast);
+}
+
+.apni-demo-btn:hover {
+  border-color: var(--primary);
+  background: var(--bg-surface-hover);
+  transform: translateY(-2px);
+}
+
+.apni-demo-icon.student {
+  color: #38bdf8;
+}
+
+.apni-demo-icon.tpo {
+  color: #34d399;
+}
+
+.apni-demo-icon.admin {
+  color: #a78bfa;
+}
+
+.apni-demo-btn__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.apni-demo-btn__role {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.apni-demo-btn__name {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.apni-login-footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-subtle);
+}

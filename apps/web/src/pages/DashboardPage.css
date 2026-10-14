@@ -1,0 +1,280 @@
+.apni-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Welcome Banner */
+.apni-welcome-banner {
+  padding: 32px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
+              radial-gradient(circle at 0% 100%, rgba(56, 189, 248, 0.15) 0%, transparent 50%),
+              var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.apni-welcome-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--primary-subtle);
+  color: var(--primary-text);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.apni-welcome-badge__icon {
+  color: var(--primary);
+}
+
+.apni-welcome-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.apni-welcome-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 650px;
+  line-height: 1.5;
+}
+
+/* KPI Grid */
+.apni-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.apni-kpi-card {
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.apni-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.apni-kpi-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.apni-kpi-card__title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-subtle);
+  letter-spacing: 0.06em;
+}
+
+.apni-kpi-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.apni-kpi-card__icon.primary {
+  background: var(--primary-subtle);
+  color: var(--primary);
+}
+
+.apni-kpi-card__icon.info {
+  background: var(--secondary-subtle);
+  color: var(--secondary);
+}
+
+.apni-kpi-card__icon.success {
+  background: var(--success-subtle);
+  color: var(--success);
+}
+
+.apni-kpi-card__icon.warning {
+  background: var(--warning-subtle);
+  color: var(--warning);
+}
+
+.apni-kpi-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.apni-kpi-card__value {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.apni-kpi-card__sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Dashboard Lists Grid */
+.apni-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 24px;
+}
+
+.apni-dashboard-panel {
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.apni-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.apni-panel-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.apni-panel-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.apni-panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.apni-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.apni-drive-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-fast);
+}
+
+.apni-drive-item:hover {
+  border-color: var(--primary);
+  background: var(--bg-surface-hover);
+}
+
+.apni-drive-item__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.apni-drive-item__badge {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--primary) 0%, #38bdf8 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.apni-drive-item__company {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.apni-drive-item__criteria {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.apni-drive-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.apni-drive-item__package {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.apni-app-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+}
+
+.apni-app-item__id {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.apni-app-item__student {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.apni-empty-mini {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .apni-welcome-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .apni-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,6 +1,29 @@
+@import './design-system/tokens.css';
+
 :root {
-  --font-ui: Aptos, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Aptos Display', Aptos, 'Segoe UI', system-ui, sans-serif;
+  --text-primary: var(--text-main, #f8fafc);
+  --text-secondary: var(--text-muted, #94a3b8);
+  --bg-base: var(--bg-app, #0b0f19);
+  --bg-hover: var(--bg-surface-hover, #2d3748);
+  --primary-muted: var(--primary-subtle, rgba(99, 102, 241, 0.12));
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --font-xs: 0.75rem;
+  --font-sm: 0.875rem;
+  --font-md: 1rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.25rem;
+  --font-2xl: 1.5rem;
+  --font-3xl: 2rem;
+  --leading-relaxed: 1.6;
+
+  --font-ui: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', sans-serif;
   --navy: #172033;
   --navy-soft: #24354b;
   --teal: #277b88;
@@ -12,6 +35,7 @@
   --line: #dce3e0;
   --muted: #697582;
   --text: #172033;
+
   --radius-card: 10px;
   --radius-control: 7px;
   --shadow-soft: 0 2px 10px rgba(23, 32, 51, 0.04);

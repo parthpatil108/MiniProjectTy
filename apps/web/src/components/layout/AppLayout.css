@@ -1,0 +1,363 @@
+.apni-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg-app);
+}
+
+/* Topbar */
+.apni-topbar {
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.apni-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.apni-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.apni-brand__logo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--primary) 0%, #38bdf8 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  box-shadow: 0 2px 8px -2px var(--primary-glow);
+}
+
+.apni-brand__name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.apni-brand__accent {
+  color: var(--primary);
+}
+
+/* Live Status Dot */
+.apni-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+}
+
+.apni-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.apni-status-dot--connected {
+  background-color: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  animation: apni-pulse 2s infinite;
+}
+
+.apni-status-dot--reconnecting {
+  background-color: var(--warning);
+  animation: apni-pulse 1s infinite;
+}
+
+.apni-status-dot--disconnected {
+  background-color: var(--danger);
+}
+
+.apni-status-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Search Trigger */
+.apni-topbar__center {
+  flex: 1;
+  max-width: 480px;
+  margin: 0 24px;
+}
+
+.apni-search-trigger {
+  width: 100%;
+  height: 38px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.apni-search-trigger:hover {
+  border-color: var(--primary);
+  background: var(--bg-surface-hover);
+}
+
+.apni-search-trigger__text {
+  flex: 1;
+  text-align: left;
+  font-size: 13px;
+}
+
+.apni-search-trigger__kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+}
+
+/* Topbar Right */
+.apni-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.apni-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.apni-icon-btn:hover {
+  color: var(--text-main);
+  background: var(--bg-surface-hover);
+  border-color: var(--text-muted);
+}
+
+.apni-badge-counter {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.apni-user-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border-color);
+}
+
+.apni-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.apni-user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.apni-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.apni-user-role {
+  font-size: 11px;
+  color: var(--primary-text);
+  font-weight: 500;
+}
+
+.apni-logout-btn {
+  margin-left: 4px;
+}
+
+/* App Body & Sidebar */
+.apni-body {
+  display: flex;
+  flex: 1;
+}
+
+.apni-sidebar {
+  width: 250px;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-shrink: 0;
+  min-height: calc(100vh - 64px);
+  position: sticky;
+  top: 64px;
+}
+
+.apni-nav {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.apni-nav__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.apni-nav__header {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-subtle);
+  letter-spacing: 0.08em;
+  padding: 0 12px 6px;
+}
+
+.apni-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.apni-nav__item:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-main);
+}
+
+.apni-nav__item.is-active {
+  background: var(--primary-subtle);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.apni-sidebar__footer {
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.apni-service-tag {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.apni-service-tag__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.apni-service-tag__version {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+/* Main Content */
+.apni-main {
+  flex: 1;
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Responsive */
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mobile-only {
+    display: flex;
+  }
+  .desktop-only {
+    display: none;
+  }
+  .apni-topbar__center {
+    display: none;
+  }
+  .apni-sidebar {
+    position: fixed;
+    top: 64px;
+    left: -260px;
+    z-index: 99;
+    transition: left var(--transition-normal);
+    box-shadow: var(--shadow-xl);
+  }
+  .apni-sidebar.is-open {
+    left: 0;
+  }
+  .apni-main {
+    padding: 20px 16px;
+  }
+}
+
+@keyframes apni-pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}

@@ -259,4 +259,30 @@ export class ApplicationService {
       throw err;
     }
   }
+
+  public async getAllApplications(filter?: { student_id?: string; drive_id?: string }): Promise<any[]> {
+    const table = this.getStorageManager().getTable('applications');
+    let records = table.getAllRecords();
+    if (filter?.student_id) {
+      records = records.filter((r) => r.student_id === filter.student_id);
+    }
+    if (filter?.drive_id) {
+      records = records.filter((r) => r.drive_id === filter.drive_id);
+    }
+    return records.map((app) => ({
+      application_id: app.application_id,
+      student_id: app.student_id,
+      drive_id: app.drive_id,
+      resume_version: app.resume_version,
+      consent: app.consent,
+      idempotency_key: app.idempotency_key,
+      state: app.state,
+      version: app._version || app.version || 1,
+      decision_id: app.decision_id || null,
+      ranking_id: app.ranking_id || null,
+      created_at: app._createdAt,
+      updated_at: app._updatedAt,
+    }));
+  }
 }
+
