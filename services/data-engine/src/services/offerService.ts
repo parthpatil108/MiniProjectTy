@@ -23,10 +23,14 @@ export interface CompensateOfferInput {
 async function releaseTeamALease(leaseId: string, correlationId?: string): Promise<void> {
   if (!leaseId) return;
   const teamAUrl = process.env.TEAM_A_URL || 'http://localhost:3001';
+  const internalSecret = process.env.INTERNAL_SERVICE_SECRET || 'internal-service-auth-key-2026-secure';
   try {
     await fetch(`${teamAUrl}/internal/v1/locks/${leaseId}`, {
       method: 'DELETE',
-      headers: correlationId ? { 'X-Correlation-ID': correlationId } : {},
+      headers: {
+        'X-Service-Token': internalSecret,
+        ...(correlationId ? { 'X-Correlation-ID': correlationId } : {}),
+      },
     });
   } catch (err: any) {
     console.warn(`[Team C -> Team A compensation] Failed to release lease ${leaseId}:`, err.message);

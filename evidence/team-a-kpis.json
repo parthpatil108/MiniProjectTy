@@ -15,7 +15,7 @@
       "category": "Team A",
       "name": "Decision latency",
       "target": "p95 <= 200 ms for 1,000 queued requests",
-      "measured": "p95 = 0.07 ms (avg = 0.04 ms)",
+      "measured": "p95 = 0.08 ms (avg = 0.05 ms)",
       "status": "PASS",
       "details": "1,000 requests enqueued and evaluated sequentially."
     },

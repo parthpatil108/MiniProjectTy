@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "description": "Shared envelope helpers, error codes, and utilities for ApniLeap",
-  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -11,7 +10,14 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.11.24",
     "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3",
+    "pino": "^10.4.0",
+    "zod": "^4.6.7"
   }
 }

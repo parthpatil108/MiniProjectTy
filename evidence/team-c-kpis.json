@@ -24,7 +24,7 @@
       "category": "Team C",
       "name": "Query performance",
       "target": "p95 <= 200 ms for agreed drive and application queries",
-      "measured": "p95 = 0.001 ms (avg = 0.001 ms)",
+      "measured": "p95 = 0.003 ms (avg = 0.003 ms)",
       "status": "PASS",
       "details": "Hand-built B+Tree and Hash indices accelerate range and point lookups."
     },

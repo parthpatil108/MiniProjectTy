@@ -147,9 +147,18 @@ describe('Team A - HTTP API Contracts (OpenAPI 3.x Conformance)', () => {
   });
 
   describe('POST /internal/v1/rules/evaluate', () => {
-    it('should evaluate rules directly with configured strategy', async () => {
+    it('should reject unauthenticated request with 401 UNAUTHORIZED', async () => {
       const res = await request(app)
         .post('/internal/v1/rules/evaluate')
+        .send({ strategy: 'SEQUENTIAL_AND' });
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('should evaluate rules directly with configured strategy when authenticated', async () => {
+      const res = await request(app)
+        .post('/internal/v1/rules/evaluate')
+        .set('X-Service-Token', 'internal-service-auth-key-2026-secure')
         .send({
           student: {
             student_id: 'STU-2001',

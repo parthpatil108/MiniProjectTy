@@ -1,3 +1,7 @@
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'apnileap-test-secret-2026';
+process.env.INTERNAL_SERVICE_SECRET = 'internal-service-auth-key-2026-secure';
+
 import test, { describe, before, after } from 'node:test';
 import assert from 'node:assert';
 import { createApp } from '../src/app';
@@ -57,10 +61,25 @@ describe('Team B - OpenAPI Contract Tests', () => {
     assert.strictEqual(body.service, 'team-b-ranking');
   });
 
-  test('PUT /internal/v1/profiles/students/:studentId syncs student and returns graph_version', async () => {
+  test('PUT /internal/v1/profiles/students/:studentId rejects unauthenticated call with 401', async () => {
     const res = await fetch(`${baseUrl}/internal/v1/profiles/students/STU-1001`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Correlation-ID': 'corr-stu-1' },
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: 'STU-1001' })
+    });
+    assert.strictEqual(res.status, 401);
+    const body = (await res.json()) as any;
+    assert.strictEqual(body.error.code, 'UNAUTHORIZED');
+  });
+
+  test('PUT /internal/v1/profiles/students/:studentId syncs student and returns graph_version with service token', async () => {
+    const res = await fetch(`${baseUrl}/internal/v1/profiles/students/STU-1001`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Correlation-ID': 'corr-stu-1',
+        'X-Service-Token': 'internal-service-auth-key-2026-secure'
+      },
       body: JSON.stringify({
         student_id: 'STU-1001',
         name: 'Rahul Sharma',
@@ -80,10 +99,14 @@ describe('Team B - OpenAPI Contract Tests', () => {
     assert.strictEqual(body.meta.correlation_id, 'corr-stu-1');
   });
 
-  test('PUT /internal/v1/profiles/drives/:driveId syncs drive and returns graph_version', async () => {
+  test('PUT /internal/v1/profiles/drives/:driveId syncs drive and returns graph_version with service token', async () => {
     const res = await fetch(`${baseUrl}/internal/v1/profiles/drives/550e8400-e29b-41d4-a716-446655440001`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Correlation-ID': 'corr-drv-1' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Correlation-ID': 'corr-drv-1',
+        'X-Service-Token': 'internal-service-auth-key-2026-secure'
+      },
       body: JSON.stringify({
         drive_id: '550e8400-e29b-41d4-a716-446655440001',
         company: 'TechCorp Inc.',

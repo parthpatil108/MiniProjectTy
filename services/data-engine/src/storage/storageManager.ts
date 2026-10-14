@@ -30,6 +30,7 @@ export class StorageManager {
       applications: 'application_id',
       students: 'student_id',
       drives: 'drive_id',
+      users: 'user_id',
     };
 
     for (const [tableName, indexSpec] of Object.entries(indexConfig)) {

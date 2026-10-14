@@ -31,6 +31,12 @@ describe('ApniLeap - End-to-End Cross-Team Integration Suite', () => {
   let urlD: string;
 
   const JWT_SECRET = 'apnileap-integration-test-secret';
+  const INTERNAL_SERVICE_SECRET = 'internal-service-auth-key-2026-secure';
+  const serviceHeaders = (corrId?: string) => ({
+    'Content-Type': 'application/json',
+    'X-Service-Token': INTERNAL_SERVICE_SECRET,
+    ...(corrId ? { 'X-Correlation-ID': corrId } : {})
+  });
 
   before(async () => {
     // 1. Boot Team A
@@ -263,7 +269,7 @@ describe('ApniLeap - End-to-End Cross-Team Integration Suite', () => {
     // 4. Team A processes queue & grants slot lease
     const leaseRes = await fetch(`${urlA}/internal/v1/locks/acquire`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Correlation-ID': traceId },
+      headers: serviceHeaders(traceId),
       body: JSON.stringify({ slot_id: `SLOT-${driveId}`, holder_id: 'STU-1001' })
     });
     assert.strictEqual(leaseRes.status, 200);
@@ -288,8 +294,7 @@ describe('ApniLeap - End-to-End Cross-Team Integration Suite', () => {
     const commitRes = await fetch(`${urlC}/internal/v1/offers/commit`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Correlation-ID': traceId,
+        ...serviceHeaders(traceId),
         'Idempotency-Key': 'commit-idem-1'
       },
       body: JSON.stringify({
@@ -320,7 +325,7 @@ describe('ApniLeap - End-to-End Cross-Team Integration Suite', () => {
     // 1. Acquire slot lease in Team A
     const leaseRes = await fetch(`${urlA}/internal/v1/locks/acquire`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Correlation-ID': traceId },
+      headers: serviceHeaders(traceId),
       body: JSON.stringify({ slot_id: 'SLOT-COMP-TEST', holder_id: 'STU-1002' })
     });
     assert.strictEqual(leaseRes.status, 200);
@@ -329,7 +334,7 @@ describe('ApniLeap - End-to-End Cross-Team Integration Suite', () => {
     // 2. Verify slot is currently locked (cannot be acquired by STU-1003)
     const secondLockRes = await fetch(`${urlA}/internal/v1/locks/acquire`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: serviceHeaders(),
       body: JSON.stringify({ slot_id: 'SLOT-COMP-TEST', holder_id: 'STU-1003' })
     });
     assert.strictEqual(secondLockRes.status, 423);
@@ -350,7 +355,7 @@ describe('ApniLeap - End-to-End Cross-Team Integration Suite', () => {
     // 4. Trigger Compensation in Team C with lease_id
     const compRes = await fetch(`${urlC}/internal/v1/offers/compensate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Correlation-ID': traceId },
+      headers: serviceHeaders(traceId),
       body: JSON.stringify({
         application_id,
         lease_id,
@@ -362,7 +367,7 @@ describe('ApniLeap - End-to-End Cross-Team Integration Suite', () => {
     // 5. Verify Team C released the lease in Team A (0 orphan leases!)
     const reacquireRes = await fetch(`${urlA}/internal/v1/locks/acquire`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: serviceHeaders(),
       body: JSON.stringify({ slot_id: 'SLOT-COMP-TEST', holder_id: 'STU-1003' })
     });
     assert.strictEqual(reacquireRes.status, 200);
@@ -420,7 +425,7 @@ describe('ApniLeap - End-to-End Cross-Team Integration Suite', () => {
   test('Flow 5: Team A Deadlock Detection Analysis Endpoint', async () => {
     const deadlockRes = await fetch(`${urlA}/internal/v1/deadlocks/analyse`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: serviceHeaders(),
       body: JSON.stringify({
         wait_for_edges: [
           { waiter: 'Txn-1', holder: 'Txn-2' },

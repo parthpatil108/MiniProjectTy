@@ -15,7 +15,7 @@
       "category": "Team B",
       "name": "Computation latency",
       "target": "p95 <= 100 ms for reference skill graph",
-      "measured": "p95 = 0.23 ms (avg = 0.08 ms)",
+      "measured": "p95 = 0.33 ms (avg = 0.09 ms)",
       "status": "PASS",
       "details": "Repeated ranking benchmark across candidate cohort."
     },
@@ -24,7 +24,7 @@
       "category": "Team B",
       "name": "Lookup efficiency",
       "target": "p95 shortlist-index lookup <= 1 ms; dual Hash & AVL support",
-      "measured": "p95 = 0.001 ms (avg = 0.003 ms)",
+      "measured": "p95 = 0.001 ms (avg = 0.001 ms)",
       "status": "PASS",
       "details": "Both Hash and AVL tree indices operational with identical retrieval semantics."
     },

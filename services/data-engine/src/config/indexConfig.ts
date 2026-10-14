@@ -20,4 +20,8 @@ export const indexConfig: IndexConfig = {
     hash: ['drive_id'],
     bplustree: [],
   },
+  users: {
+    hash: ['user_id', 'email'],
+    bplustree: [],
+  },
 };

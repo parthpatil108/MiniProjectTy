@@ -43,9 +43,24 @@ describe('C3/C4/C5 — Offers, Audit, Performance Reports & Recovery Verificatio
     appVersion = updatedApp._version || createRes.body.data.version;
   });
 
+  test('POST /internal/v1/offers/commit rejects unauthenticated request with 401', async () => {
+    const res = await request(app)
+      .post('/internal/v1/offers/commit')
+      .send({
+        application_id: applicationId,
+        decision_id: 'd1e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f6a',
+        lease_id: 'lease-1001',
+        expectedVersion: appVersion,
+      });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('UNAUTHORIZED');
+  });
+
   test('POST /internal/v1/offers/commit atomically commits an offer transaction', async () => {
     const res = await request(app)
       .post('/internal/v1/offers/commit')
+      .set('X-Service-Token', 'internal-service-auth-key-2026-secure')
       .set('X-Correlation-ID', '22222222-3333-4444-5555-666666666666')
       .send({
         application_id: applicationId,
@@ -66,6 +81,7 @@ describe('C3/C4/C5 — Offers, Audit, Performance Reports & Recovery Verificatio
   test('POST /internal/v1/offers/compensate triggers offer compensation', async () => {
     const res = await request(app)
       .post('/internal/v1/offers/compensate')
+      .set('X-Service-Token', 'internal-service-auth-key-2026-secure')
       .set('X-Correlation-ID', '33333333-4444-5555-6666-777777777777')
       .send({
         application_id: applicationId,
@@ -81,6 +97,7 @@ describe('C3/C4/C5 — Offers, Audit, Performance Reports & Recovery Verificatio
     // Perform commit to record audit entry
     await request(app)
       .post('/internal/v1/offers/commit')
+      .set('X-Service-Token', 'internal-service-auth-key-2026-secure')
       .set('X-Correlation-ID', '44444444-5555-6666-7777-888888888888')
       .send({
         application_id: applicationId,
@@ -109,7 +126,9 @@ describe('C3/C4/C5 — Offers, Audit, Performance Reports & Recovery Verificatio
   });
 
   test('POST /internal/v1/recovery/verify reports WAL status', async () => {
-    const res = await request(app).post('/internal/v1/recovery/verify');
+    const res = await request(app)
+      .post('/internal/v1/recovery/verify')
+      .set('X-Service-Token', 'internal-service-auth-key-2026-secure');
 
     expect(res.status).toBe(200);
     expect(res.body.data.status).toBe('OK');
@@ -120,7 +139,12 @@ describe('C3/C4/C5 — Offers, Audit, Performance Reports & Recovery Verificatio
   test('GET /internal/v1/outbox/stream returns event-stream', (done) => {
     const server = app.listen(0, () => {
       const addr = server.address() as any;
-      const clientReq = http.get(`http://localhost:${addr.port}/internal/v1/outbox/stream`, (res) => {
+      const clientReq = http.get({
+        hostname: 'localhost',
+        port: addr.port,
+        path: '/internal/v1/outbox/stream',
+        headers: { 'X-Service-Token': 'internal-service-auth-key-2026-secure' }
+      }, (res) => {
         expect(res.statusCode).toBe(200);
         expect(res.headers['content-type']).toContain('text/event-stream');
         clientReq.destroy();

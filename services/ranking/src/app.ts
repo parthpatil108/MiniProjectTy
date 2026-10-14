@@ -1,14 +1,18 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { randomUUID } from 'crypto';
-import { ProfileRegistryService } from './services/profileRegistryService';
-import { RankingService } from './services/rankingService';
-import { AnalyticsService } from './services/analyticsService';
-import { ShortlistIndex } from './services/shortlistIndexService';
-import { ShortlistCacheService } from './services/shortlistCacheService';
-import { ShortlistLookupService } from './services/shortlistLookupService';
-import { RankingMetricsService } from './services/rankingMetricsService';
-import { success, failure, assertCorrelationId } from './services/apiEnvelope';
+import { ProfileRegistryService } from './services/profileRegistryService.js';
+import { RankingService } from './services/rankingService.js';
+import { AnalyticsService } from './services/analyticsService.js';
+import { ShortlistIndex } from './services/shortlistIndexService.js';
+import { ShortlistCacheService } from './services/shortlistCacheService.js';
+import { ShortlistLookupService } from './services/shortlistLookupService.js';
+import { RankingMetricsService } from './services/rankingMetricsService.js';
+import { success, failure } from './services/apiEnvelope.js';
+import { loadConfig, requireServiceAuth, createSuccessEnvelope } from '@apnileap/common';
+
+const config = loadConfig();
 
 export function createApp(
   registry: ProfileRegistryService,
@@ -19,8 +23,20 @@ export function createApp(
   rankingMetricsService: RankingMetricsService
 ) {
   const app = express();
-  app.use(cors());
-  app.use(express.json());
+  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin || config.CORS_ORIGINS.includes(origin) || config.NODE_ENV === 'test') {
+          callback(null, true);
+        } else {
+          callback(new Error(`CORS blocked for origin: ${origin}`));
+        }
+      },
+      credentials: true,
+    })
+  );
+  app.use(express.json({ limit: '1mb' }));
 
   // Middleware to ensure Correlation ID
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -31,6 +47,7 @@ export function createApp(
   });
 
   app.get('/healthz', (req, res) => res.json({ status: 'UP', service: 'team-b-ranking' }));
+  app.get('/readyz', (req, res) => res.json(createSuccessEnvelope({ ready: true, service: 'team-b-ranking' }, (req as any).correlationId || 'readyz')));
 
   app.post('/api/v1/rankings/compute', (req, res) => {
     try {
@@ -45,11 +62,9 @@ export function createApp(
     }
   });
 
-
   app.get('/api/v1/rankings/:rankingId', (req, res) => {
     try {
-      // Mock ranking fetch for now, or implement from cache
-      const result = rankingService.computeRanking({ driveId: req.params.rankingId }); // Fallback
+      const result = rankingService.computeRanking({ driveId: req.params.rankingId });
       res.status(200).json(success(result, (req as any).correlationId));
     } catch(e: any) {
       res.status(404).json(failure('NOT_FOUND', e.message, (req as any).correlationId));
@@ -59,6 +74,23 @@ export function createApp(
   app.get('/api/v1/profiles', (req, res) => {
     res.status(200).json(success(registry.getGraphSummary(), (req as any).correlationId));
   });
+
+  app.post('/api/v1/analytics/analyse', (req, res) => {
+    try {
+      const result = analyticsService.analyse(req.body);
+      res.status(200).json(success(result, (req as any).correlationId));
+    } catch(e: any) {
+      res.status(400).json(failure('VALIDATION_ERROR', e.message, (req as any).correlationId));
+    }
+  });
+
+  app.get('/api/v1/metrics/ranking', (req, res) => {
+    const metrics = rankingMetricsService.getRankingMetrics((req as any).correlationId);
+    res.status(200).json(metrics.body);
+  });
+
+  // Guard all internal routes with service authentication
+  app.use('/internal/v1', requireServiceAuth(config.INTERNAL_SERVICE_SECRET));
 
   app.put('/internal/v1/profiles/students/:studentId', (req, res) => {
     try {
@@ -86,21 +118,6 @@ export function createApp(
     } catch (e: any) {
       res.status(400).json(failure('VALIDATION_ERROR', e.message, (req as any).correlationId));
     }
-  });
-
-
-  app.post('/api/v1/analytics/analyse', (req, res) => {
-    try {
-      const result = analyticsService.analyse(req.body);
-      res.status(200).json(success(result, (req as any).correlationId));
-    } catch(e: any) {
-      res.status(400).json(failure('VALIDATION_ERROR', e.message, (req as any).correlationId));
-    }
-  });
-
-  app.get('/api/v1/metrics/ranking', (req, res) => {
-    const metrics = rankingMetricsService.getRankingMetrics((req as any).correlationId);
-    res.status(200).json(metrics.body);
   });
 
   app.get('/internal/v1/shortlist-index/:key', (req, res) => {

@@ -7,5 +7,8 @@ module.exports = {
     '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }]
   },
   testTimeout: 30000,
-  verbose: true
+  verbose: true,
+  moduleNameMapper: {
+    '^(\\..*)\\.js$': '$1',
+  }
 };

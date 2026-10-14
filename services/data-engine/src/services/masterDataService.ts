@@ -40,11 +40,13 @@ export interface DriveUpdateInput {
 
 async function syncStudentToTeamB(student: any, correlationId?: string): Promise<void> {
   const teamBUrl = process.env.TEAM_B_URL || 'http://localhost:3002';
+  const internalSecret = process.env.INTERNAL_SERVICE_SECRET || 'internal-service-auth-key-2026-secure';
   try {
     await fetch(`${teamBUrl}/internal/v1/profiles/students/${student.student_id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'X-Service-Token': internalSecret,
         ...(correlationId ? { 'X-Correlation-ID': correlationId } : {}),
       },
       body: JSON.stringify(student),
@@ -56,11 +58,13 @@ async function syncStudentToTeamB(student: any, correlationId?: string): Promise
 
 async function syncDriveToTeamB(drive: any, correlationId?: string): Promise<void> {
   const teamBUrl = process.env.TEAM_B_URL || 'http://localhost:3002';
+  const internalSecret = process.env.INTERNAL_SERVICE_SECRET || 'internal-service-auth-key-2026-secure';
   try {
     await fetch(`${teamBUrl}/internal/v1/profiles/drives/${drive.drive_id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'X-Service-Token': internalSecret,
         ...(correlationId ? { 'X-Correlation-ID': correlationId } : {}),
       },
       body: JSON.stringify(drive),

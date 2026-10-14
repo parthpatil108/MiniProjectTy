@@ -1,203 +1,407 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import jwt from 'jsonwebtoken';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import { randomUUID } from 'crypto';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import {
+  loadConfig,
+  createLogger,
+  requestLoggerMiddleware,
+  correlationIdMiddleware,
+  getCorrelationId,
+  createSuccessEnvelope,
+  createErrorEnvelope,
+  requireAuth,
+  requireRole,
+  signAccessToken,
+  signRefreshToken,
+  verifyToken,
+  signServiceToken,
+  UserTokenPayload
+} from '@apnileap/common';
 
-const app = express();
-const PORT = process.env.BFF_PORT || 3004;
+export const config = loadConfig();
+const logger = createLogger('bff-service', config.LOG_LEVEL);
 
-const TEAM_A_URL = process.env.TEAM_A_URL || 'http://localhost:3001';
-const TEAM_B_URL = process.env.TEAM_B_URL || 'http://localhost:3002';
-const TEAM_C_URL = process.env.TEAM_C_URL || 'http://localhost:3003';
-const JWT_SECRET = process.env.JWT_SIGNING_SECRET || process.env.JWT_SECRET || 'apnileap-shared-secret-key-2026';
+export const app = express();
 
-app.use(cors());
+// -------------------------------------------------------------
+// Security & Infrastructure Middlewares
+// -------------------------------------------------------------
 
-// Correlation ID & Logger Middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const correlationId = (req.header('X-Correlation-ID') || randomUUID()).toString();
-  (req as any).correlationId = correlationId;
-  res.setHeader('X-Correlation-ID', correlationId);
-  console.log(`[Team D BFF] [${req.method}] ${req.url} - correlation_id: ${correlationId}`);
-  next();
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || config.CORS_ORIGINS.includes(origin) || config.NODE_ENV === 'test') {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
+    credentials: true,
+  })
+);
+app.use(cookieParser() as any);
+app.use(express.json({ limit: '1mb' }));
+app.use(correlationIdMiddleware);
+app.use(requestLoggerMiddleware(logger));
+
+// Rate limiters
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: config.NODE_ENV === 'test' ? 10000 : 300,
+  message: (req: Request, res: Response) => {
+    const correlationId = getCorrelationId(req);
+    return res.status(429).json(
+      createErrorEnvelope('RATE_LIMITED', 'Too many requests. Please try again later.', correlationId)
+    );
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// JSON body parser for BFF routes
-app.use(express.json());
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: config.NODE_ENV === 'test' ? 10000 : 20,
+  message: (req: Request, res: Response) => {
+    const correlationId = getCorrelationId(req);
+    return res.status(429).json(
+      createErrorEnvelope('RATE_LIMITED', 'Too many login attempts. Please try again later.', correlationId)
+    );
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
-// Health check
+app.use('/api/', generalLimiter as any);
+
+// -------------------------------------------------------------
+// Health & Readiness Probes
+// -------------------------------------------------------------
+
 app.get('/healthz', (req: Request, res: Response) => {
   res.status(200).json({ status: 'UP', service: 'team-d-bff' });
 });
 
-// ==========================================
-// D1: Authentication and Session Management
-// ==========================================
+app.get('/readyz', async (req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
+  const checks: Record<string, string> = {};
 
-app.post('/api/v1/ui/session', (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
-  const { user_id, role, email, password } = req.body || {};
-  const effectiveUserId = user_id || (email ? email.split('@')[0] : 'STU-1001');
-  const effectiveRole = role || 'Student';
+  try {
+    const aRes = await fetch(`${config.ELIGIBILITY_URL}/healthz`, { signal: AbortSignal.timeout(1500) });
+    checks.eligibility = aRes.ok ? 'UP' : 'DOWN';
+  } catch {
+    checks.eligibility = 'DOWN';
+  }
 
-  const token = jwt.sign(
-    { user_id: effectiveUserId, role: effectiveRole },
-    JWT_SECRET,
-    { expiresIn: '1h' }
+  try {
+    const bRes = await fetch(`${config.RANKING_URL}/healthz`, { signal: AbortSignal.timeout(1500) });
+    checks.ranking = bRes.ok ? 'UP' : 'DOWN';
+  } catch {
+    checks.ranking = 'DOWN';
+  }
+
+  try {
+    const cRes = await fetch(`${config.DATA_ENGINE_URL}/healthz`, { signal: AbortSignal.timeout(1500) });
+    checks.data_engine = cRes.ok ? 'UP' : 'DOWN';
+  } catch {
+    checks.data_engine = 'DOWN';
+  }
+
+  const isReady = checks.data_engine === 'UP';
+  return res.status(isReady ? 200 : 503).json(
+    createSuccessEnvelope({ ready: isReady, dependencies: checks }, correlationId)
   );
+});
 
-  return res.status(200).json({
-    data: {
-      token,
-      role: effectiveRole,
-      user_id: effectiveUserId,
-      expires_in: 3600
-    },
-    meta: {
-      correlation_id: correlationId,
-      api_version: 'v1'
+// Helper for internal service tokens
+function getServiceAuthHeaders(correlationId: string) {
+  const serviceToken = signServiceToken('team-d-bff', config.INTERNAL_SERVICE_SECRET);
+  return {
+    'Content-Type': 'application/json',
+    'X-Correlation-ID': correlationId,
+    'X-Service-Token': serviceToken,
+    Authorization: `Bearer ${serviceToken}`
+  };
+}
+
+// -------------------------------------------------------------
+// D1: Real Authentication & Session Management
+// -------------------------------------------------------------
+
+app.post('/api/v1/ui/session', authLimiter as any, async (req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
+  const { email, password } = req.body || {};
+
+  if (!email || !password) {
+    return res.status(400).json(
+      createErrorEnvelope('VALIDATION_ERROR', 'Email and password are required', correlationId, [
+        { field: 'email', reason: 'Email is required' },
+        { field: 'password', reason: 'Password is required' }
+      ])
+    );
+  }
+
+  try {
+    // Authenticate with Team C (System of Record)
+    const authResp = await fetch(`${config.DATA_ENGINE_URL}/internal/v1/users/authenticate`, {
+      method: 'POST',
+      headers: getServiceAuthHeaders(correlationId),
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!authResp.ok) {
+      const errBody = await authResp.json().catch(() => ({}));
+      logger.warn({ correlation_id: correlationId, email }, 'Authentication failed at Team C');
+      return res.status(401).json(
+        createErrorEnvelope('UNAUTHORIZED', errBody?.error?.message || 'Invalid credentials', correlationId)
+      );
     }
-  });
+
+    const { data: user } = (await authResp.json()) as any;
+
+    const tokenPayload: UserTokenPayload = {
+      user_id: user.user_id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
+
+    const accessToken = signAccessToken(tokenPayload, config.JWT_SECRET, '15m');
+    const refreshToken = signRefreshToken(
+      { user_id: user.user_id, role: user.role },
+      config.JWT_SECRET,
+      '7d'
+    );
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: config.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    return res.status(200).json(
+      createSuccessEnvelope(
+        {
+          token: accessToken,
+          role: user.role,
+          user_id: user.user_id,
+          name: user.name,
+          email: user.email,
+          expires_in: 900
+        },
+        correlationId
+      )
+    );
+  } catch (err: any) {
+    logger.error({ correlation_id: correlationId, err: err.message }, 'Failed to communicate with auth service');
+    return res.status(502).json(
+      createErrorEnvelope('UPSTREAM_UNAVAILABLE', 'Authentication service unavailable', correlationId)
+    );
+  }
+});
+
+app.post('/api/v1/ui/refresh', (req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
+  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json(
+      createErrorEnvelope('UNAUTHORIZED', 'Refresh token required', correlationId)
+    );
+  }
+
+  try {
+    const decoded = verifyToken<{ user_id: string; role: any }>(refreshToken, config.JWT_SECRET);
+    const newAccessToken = signAccessToken(
+      { user_id: decoded.user_id, role: decoded.role, email: '' },
+      config.JWT_SECRET,
+      '15m'
+    );
+
+    return res.status(200).json(
+      createSuccessEnvelope(
+        {
+          token: newAccessToken,
+          user_id: decoded.user_id,
+          role: decoded.role,
+          expires_in: 900
+        },
+        correlationId
+      )
+    );
+  } catch {
+    return res.status(401).json(
+      createErrorEnvelope('UNAUTHORIZED', 'Invalid or expired refresh token', correlationId)
+    );
+  }
 });
 
 app.delete('/api/v1/ui/session', (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
-  return res.status(200).json({
-    data: { logged_out: true },
-    meta: {
-      correlation_id: correlationId,
-      api_version: 'v1'
-    }
+  const correlationId = getCorrelationId(req);
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: config.NODE_ENV === 'production'
   });
+  return res.status(200).json(
+    createSuccessEnvelope({ logged_out: true }, correlationId)
+  );
 });
 
-app.get('/api/v1/ui/me', (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
-  const authHeader = req.header('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({
-      error: { code: 'UNAUTHORIZED', message: 'Missing or invalid Authorization token' },
-      meta: { correlation_id: correlationId }
-    });
-  }
+app.get('/api/v1/ui/me', requireAuth(config.JWT_SECRET), (req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
+  const user = (req as any).user as UserTokenPayload;
 
-  const token = authHeader.substring(7);
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const permissionsMap: Record<string, string[]> = {
-      Student: ['view_drives', 'apply_drive', 'view_my_applications'],
-      Faculty_TPO: ['view_drives', 'view_all_applications', 'view_analytics', 'view_rankings'],
-      Placement_Admin: ['view_drives', 'manage_drives', 'view_all_applications', 'view_analytics', 'view_rankings', 'manage_offers']
-    };
-    const permissions = permissionsMap[decoded.role] || ['view_drives'];
+  const permissionsMap: Record<string, string[]> = {
+    Student: ['view_drives', 'apply_drive', 'view_my_applications'],
+    Faculty_TPO: ['view_drives', 'view_all_applications', 'view_analytics', 'view_rankings'],
+    Placement_Admin: [
+      'view_drives',
+      'manage_drives',
+      'view_all_applications',
+      'view_analytics',
+      'view_rankings',
+      'manage_offers'
+    ]
+  };
 
-    return res.status(200).json({
-      data: {
-        user_id: decoded.user_id,
-        role: decoded.role,
+  const permissions = permissionsMap[user.role] || ['view_drives'];
+
+  return res.status(200).json(
+    createSuccessEnvelope(
+      {
+        user_id: user.user_id,
+        role: user.role,
+        name: user.name || user.user_id,
+        email: user.email,
         permissions
       },
-      meta: {
-        correlation_id: correlationId,
-        api_version: 'v1'
-      }
-    });
-  } catch {
-    return res.status(401).json({
-      error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' },
-      meta: { correlation_id: correlationId }
-    });
-  }
+      correlationId
+    )
+  );
 });
 
-// ==========================================
-// D2: Drive Discovery & Applications
-// ==========================================
+// -------------------------------------------------------------
+// D2: Drives & Applications with Ownership Controls
+// -------------------------------------------------------------
 
-app.get('/api/v1/ui/drives', async (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
+app.get('/api/v1/ui/drives', requireAuth(config.JWT_SECRET), async (req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
   try {
-    const resp = await fetch(`${TEAM_C_URL}/api/v1/drives`, {
+    const resp = await fetch(`${config.DATA_ENGINE_URL}/api/v1/drives`, {
       headers: {
         'X-Correlation-ID': correlationId,
-        ...(req.header('Authorization') ? { Authorization: req.header('Authorization')! } : {})
+        Authorization: req.header('Authorization')!
       }
     });
-    const body = await resp.json() as any;
+    const body = (await resp.json()) as any;
     return res.status(resp.status).json(body);
   } catch (err: any) {
-    return res.status(503).json({
-      error: { code: 'SERVICE_UNAVAILABLE', message: 'Failed to fetch drives from Team C' },
-      meta: { correlation_id: correlationId }
-    });
+    logger.error({ correlation_id: correlationId, err: err.message }, 'Failed to fetch drives from Team C');
+    return res.status(502).json(
+      createErrorEnvelope('UPSTREAM_UNAVAILABLE', 'Failed to fetch drives from data engine', correlationId)
+    );
   }
 });
 
-app.post('/api/v1/ui/applications', async (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
+app.post('/api/v1/ui/applications', requireAuth(config.JWT_SECRET), async (req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
   const idempotencyKey = req.header('Idempotency-Key') || randomUUID();
+  const user = (req as any).user as UserTokenPayload;
+
+  // Student ownership check
+  if (user.role === 'Student' && req.body.student_id && req.body.student_id !== user.user_id) {
+    logger.warn({ correlation_id: correlationId, user: user.user_id, attemptedStudent: req.body.student_id }, 'Ownership violation');
+    return res.status(403).json(
+      createErrorEnvelope('FORBIDDEN', 'Students may only create applications for themselves', correlationId)
+    );
+  }
+
+  // Auto-fill student_id from verified user token if omitted
+  if (user.role === 'Student' && !req.body.student_id) {
+    req.body.student_id = user.user_id;
+  }
+
   try {
-    const resp = await fetch(`${TEAM_C_URL}/api/v1/applications`, {
+    const resp = await fetch(`${config.DATA_ENGINE_URL}/api/v1/applications`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Correlation-ID': correlationId,
         'Idempotency-Key': idempotencyKey,
-        ...(req.header('Authorization') ? { Authorization: req.header('Authorization')! } : {})
+        Authorization: req.header('Authorization')!
       },
       body: JSON.stringify(req.body)
     });
-    const body = await resp.json() as any;
+    const body = (await resp.json()) as any;
     return res.status(resp.status).json(body);
   } catch (err: any) {
-    return res.status(503).json({
-      error: { code: 'SERVICE_UNAVAILABLE', message: 'Failed to submit application to Team C' },
-      meta: { correlation_id: correlationId }
-    });
+    logger.error({ correlation_id: correlationId, err: err.message }, 'Failed to submit application to Team C');
+    return res.status(502).json(
+      createErrorEnvelope('UPSTREAM_UNAVAILABLE', 'Failed to submit application to data engine', correlationId)
+    );
   }
 });
 
-app.get('/api/v1/ui/applications/:applicationId', async (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
+app.get('/api/v1/ui/applications/:applicationId', requireAuth(config.JWT_SECRET), async (req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
+  const user = (req as any).user as UserTokenPayload;
+
   try {
-    const appRes = await fetch(`${TEAM_C_URL}/api/v1/applications/${req.params.applicationId}`, {
+    const appRes = await fetch(`${config.DATA_ENGINE_URL}/api/v1/applications/${req.params.applicationId}`, {
       headers: {
         'X-Correlation-ID': correlationId,
-        ...(req.header('Authorization') ? { Authorization: req.header('Authorization')! } : {})
+        Authorization: req.header('Authorization')!
       }
     });
+
     if (!appRes.ok) {
       const errBody = await appRes.json();
       return res.status(appRes.status).json(errBody);
     }
-    const appBody = await appRes.json() as any;
+
+    const appBody = (await appRes.json()) as any;
     const appData = appBody.data;
+
+    // Ownership check: Students can only view their own applications
+    if (user.role === 'Student' && appData.student_id !== user.user_id) {
+      return res.status(403).json(
+        createErrorEnvelope('FORBIDDEN', 'Access forbidden: You do not own this application', correlationId)
+      );
+    }
 
     let decisionData = null;
     if (appData.decision_id) {
       try {
-        const decRes = await fetch(`${TEAM_A_URL}/api/v1/eligibility/decisions/${appData.decision_id}`, {
+        const decRes = await fetch(`${config.ELIGIBILITY_URL}/api/v1/eligibility/decisions/${appData.decision_id}`, {
           headers: { 'X-Correlation-ID': correlationId }
         });
         if (decRes.ok) {
-          const decBody = await decRes.json() as any;
+          const decBody = (await decRes.json()) as any;
           decisionData = decBody.data;
         }
-      } catch {}
+      } catch (e: any) {
+        logger.warn({ correlation_id: correlationId, error: e.message }, 'Could not fetch decision from Team A');
+      }
     }
 
     let rankingData = null;
     if (appData.ranking_id || appData.drive_id) {
       try {
-        const rankRes = await fetch(`${TEAM_B_URL}/api/v1/rankings/${appData.ranking_id || appData.drive_id}`, {
+        const rankRes = await fetch(`${config.RANKING_URL}/api/v1/rankings/${appData.ranking_id || appData.drive_id}`, {
           headers: { 'X-Correlation-ID': correlationId }
         });
         if (rankRes.ok) {
-          const rankBody = await rankRes.json() as any;
+          const rankBody = (await rankRes.json()) as any;
           rankingData = rankBody.data;
         }
-      } catch {}
+      } catch (e: any) {
+        logger.warn({ correlation_id: correlationId, error: e.message }, 'Could not fetch ranking from Team B');
+      }
     }
 
     const aggregate = {
@@ -206,91 +410,106 @@ app.get('/api/v1/ui/applications/:applicationId', async (req: Request, res: Resp
       ranking: rankingData,
       freshness: new Date().toISOString(),
       alerts: [],
-      permissions: ['view_my_applications']
+      permissions: user.role === 'Student' ? ['view_my_applications'] : ['view_all_applications']
     };
 
-    return res.status(200).json({
-      data: aggregate,
-      meta: {
-        correlation_id: correlationId,
-        api_version: 'v1'
-      }
-    });
+    return res.status(200).json(createSuccessEnvelope(aggregate, correlationId));
   } catch (err: any) {
-    return res.status(503).json({
-      error: { code: 'SERVICE_UNAVAILABLE', message: 'Failed to aggregate application details' },
-      meta: { correlation_id: correlationId }
-    });
+    logger.error({ correlation_id: correlationId, err: err.message }, 'Failed to aggregate application details');
+    return res.status(502).json(
+      createErrorEnvelope('UPSTREAM_UNAVAILABLE', 'Failed to aggregate application details', correlationId)
+    );
   }
 });
 
-// ==========================================
-// D3: Live Dashboard & SSE Stream
-// ==========================================
+// -------------------------------------------------------------
+// D3: Dashboard & Resilient SSE Live Stream
+// -------------------------------------------------------------
 
-app.get('/api/v1/ui/dashboard', async (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
+app.get('/api/v1/ui/dashboard', requireAuth(config.JWT_SECRET), async (req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
   try {
-    const drivesRes = await fetch(`${TEAM_C_URL}/api/v1/drives`, {
-      headers: { 'X-Correlation-ID': correlationId }
+    const drivesRes = await fetch(`${config.DATA_ENGINE_URL}/api/v1/drives`, {
+      headers: {
+        'X-Correlation-ID': correlationId,
+        Authorization: req.header('Authorization')!
+      }
     });
-    const drivesData = drivesRes.ok ? (await drivesRes.json() as any).data : [];
+    const drivesData = drivesRes.ok ? ((await drivesRes.json()) as any).data : [];
 
     let recentApps: any[] = [];
     try {
-      const reportsRes = await fetch(`${TEAM_C_URL}/api/v1/reports/placement-performance`, {
-        headers: { 'X-Correlation-ID': correlationId }
+      const reportsRes = await fetch(`${config.DATA_ENGINE_URL}/api/v1/reports/placement-performance`, {
+        headers: {
+          'X-Correlation-ID': correlationId,
+          Authorization: req.header('Authorization')!
+        }
       });
       if (reportsRes.ok) {
-        const reportJson = await reportsRes.json() as any;
+        const reportJson = (await reportsRes.json()) as any;
         recentApps = reportJson.data?.recent_applications || [];
       }
-    } catch {}
+    } catch (e: any) {
+      logger.warn({ correlation_id: correlationId, error: e.message }, 'Reports unavailable for dashboard');
+    }
 
-    return res.status(200).json({
-      data: {
-        active_drives: drivesData.filter((d: any) => d.state === 'OPEN'),
-        recent_applications: recentApps,
-        freshness: new Date().toISOString()
-      },
-      meta: {
-        correlation_id: correlationId,
-        api_version: 'v1'
-      }
-    });
+    return res.status(200).json(
+      createSuccessEnvelope(
+        {
+          active_drives: drivesData.filter((d: any) => d.state === 'OPEN'),
+          recent_applications: recentApps,
+          freshness: new Date().toISOString()
+        },
+        correlationId
+      )
+    );
   } catch (err: any) {
-    return res.status(503).json({
-      error: { code: 'SERVICE_UNAVAILABLE', message: 'Failed to aggregate dashboard data' },
-      meta: { correlation_id: correlationId }
-    });
+    logger.error({ correlation_id: correlationId, err: err.message }, 'Failed to aggregate dashboard data');
+    return res.status(502).json(
+      createErrorEnvelope('UPSTREAM_UNAVAILABLE', 'Failed to aggregate dashboard data', correlationId)
+    );
   }
 });
 
 app.get('/api/v1/ui/stream', (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
+  const correlationId = getCorrelationId(req);
+
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
+    Connection: 'keep-alive',
     'X-Correlation-ID': correlationId
   });
 
-  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', message: 'SSE stream connected', timestamp: new Date().toISOString() })}\n\n`);
+  res.write(
+    `data: ${JSON.stringify({ type: 'CONNECTED', message: 'SSE stream connected', timestamp: new Date().toISOString() })}\n\n`
+  );
 
   const controller = new AbortController();
-  fetch(`${TEAM_C_URL}/internal/v1/outbox/stream`, {
+  const serviceHeaders = getServiceAuthHeaders(correlationId);
+
+  fetch(`${config.DATA_ENGINE_URL}/internal/v1/outbox/stream`, {
     signal: controller.signal,
-    headers: { 'X-Correlation-ID': correlationId }
-  }).then(async (outboxRes) => {
-    if (!outboxRes.ok || !outboxRes.body) return;
-    const reader = outboxRes.body.getReader();
-    const decoder = new TextDecoder();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      res.write(decoder.decode(value));
-    }
-  }).catch(() => {});
+    headers: serviceHeaders
+  })
+    .then(async (outboxRes) => {
+      if (!outboxRes.ok || !outboxRes.body) {
+        logger.warn({ correlation_id: correlationId }, 'Outbox upstream failed or closed');
+        return;
+      }
+      const reader = outboxRes.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(decoder.decode(value));
+      }
+    })
+    .catch((err) => {
+      if (err.name !== 'AbortError') {
+        logger.warn({ correlation_id: correlationId, error: err.message }, 'Outbox stream disconnected');
+      }
+    });
 
   const interval = setInterval(() => {
     res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT', timestamp: new Date().toISOString() })}\n\n`);
@@ -303,127 +522,123 @@ app.get('/api/v1/ui/stream', (req: Request, res: Response) => {
   });
 });
 
-app.get('/api/v1/ui/rankings', async (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
+app.get('/api/v1/ui/rankings', requireAuth(config.JWT_SECRET), async (req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
   const driveId = (req.query.drive_id as string) || 'default';
   try {
-    const resp = await fetch(`${TEAM_B_URL}/api/v1/rankings/${driveId}`, {
+    const resp = await fetch(`${config.RANKING_URL}/api/v1/rankings/${driveId}`, {
       headers: { 'X-Correlation-ID': correlationId }
     });
-    const body = await resp.json() as any;
+    const body = (await resp.json()) as any;
     return res.status(resp.status).json(body);
   } catch (err: any) {
-    return res.status(503).json({
-      error: { code: 'SERVICE_UNAVAILABLE', message: 'Failed to fetch rankings from Team B' },
-      meta: { correlation_id: correlationId }
-    });
+    logger.error({ correlation_id: correlationId, err: err.message }, 'Failed to fetch rankings');
+    return res.status(502).json(
+      createErrorEnvelope('UPSTREAM_UNAVAILABLE', 'Failed to fetch rankings from ranking engine', correlationId)
+    );
   }
 });
 
-// ==========================================
-// D4: Admin, Preview & Analytics
-// ==========================================
+// -------------------------------------------------------------
+// D4: Administrative Actions with Strict Role Guards
+// -------------------------------------------------------------
 
-app.post('/api/v1/ui/rankings/preview', async (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
-  try {
-    const resp = await fetch(`${TEAM_B_URL}/api/v1/rankings/compute`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Correlation-ID': correlationId
-      },
-      body: JSON.stringify(req.body)
-    });
-    const body = await resp.json() as any;
-    return res.status(resp.status).json(body);
-  } catch (err: any) {
-    return res.status(503).json({
-      error: { code: 'SERVICE_UNAVAILABLE', message: 'Failed to compute ranking preview from Team B' },
-      meta: { correlation_id: correlationId }
-    });
-  }
-});
-
-app.patch('/api/v1/ui/drives/:driveId', async (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
-  const authHeader = req.header('Authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+app.patch(
+  '/api/v1/ui/drives/:driveId',
+  requireAuth(config.JWT_SECRET),
+  requireRole(['Placement_Admin']),
+  async (req: Request, res: Response) => {
+    const correlationId = getCorrelationId(req);
     try {
-      const decoded = jwt.verify(authHeader.substring(7), JWT_SECRET) as any;
-      if (decoded.role !== 'Placement_Admin') {
-        return res.status(403).json({
-          error: { code: 'FORBIDDEN', message: 'Only Placement_Admin can update drive criteria or status' },
-          meta: { correlation_id: correlationId }
-        });
-      }
-    } catch {}
+      const resp = await fetch(`${config.DATA_ENGINE_URL}/internal/v1/drives/${req.params.driveId}`, {
+        method: 'PATCH',
+        headers: getServiceAuthHeaders(correlationId),
+        body: JSON.stringify(req.body)
+      });
+      const body = (await resp.json()) as any;
+      return res.status(resp.status).json(body);
+    } catch (err: any) {
+      logger.error({ correlation_id: correlationId, err: err.message }, 'Failed to proxy drive update');
+      return res.status(502).json(
+        createErrorEnvelope('UPSTREAM_UNAVAILABLE', 'Failed to update drive in data engine', correlationId)
+      );
+    }
   }
+);
 
-  try {
-    const resp = await fetch(`${TEAM_C_URL}/internal/v1/drives/${req.params.driveId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Correlation-ID': correlationId,
-        ...(authHeader ? { Authorization: authHeader } : {})
-      },
-      body: JSON.stringify(req.body)
-    });
-    const body = await resp.json() as any;
-    return res.status(resp.status).json(body);
-  } catch (err: any) {
-    return res.status(503).json({
-      error: { code: 'SERVICE_UNAVAILABLE', message: 'Failed to update drive in Team C' },
-      meta: { correlation_id: correlationId }
-    });
+app.post(
+  '/api/v1/ui/rankings/preview',
+  requireAuth(config.JWT_SECRET),
+  requireRole(['Placement_Admin', 'Faculty_TPO']),
+  async (req: Request, res: Response) => {
+    const correlationId = getCorrelationId(req);
+    try {
+      const resp = await fetch(`${config.RANKING_URL}/api/v1/rankings/compute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Correlation-ID': correlationId
+        },
+        body: JSON.stringify(req.body)
+      });
+      const body = (await resp.json()) as any;
+      return res.status(resp.status).json(body);
+    } catch (err: any) {
+      logger.error({ correlation_id: correlationId, err: err.message }, 'Failed to compute ranking preview');
+      return res.status(502).json(
+        createErrorEnvelope('UPSTREAM_UNAVAILABLE', 'Failed to compute ranking preview from ranking engine', correlationId)
+      );
+    }
   }
+);
+
+app.get(
+  '/api/v1/ui/reports/placement-performance',
+  requireAuth(config.JWT_SECRET),
+  requireRole(['Placement_Admin', 'Faculty_TPO']),
+  async (req: Request, res: Response) => {
+    const correlationId = getCorrelationId(req);
+    try {
+      const resp = await fetch(`${config.DATA_ENGINE_URL}/api/v1/reports/placement-performance`, {
+        headers: {
+          'X-Correlation-ID': correlationId,
+          Authorization: req.header('Authorization')!
+        }
+      });
+      const body = (await resp.json()) as any;
+      return res.status(resp.status).json(body);
+    } catch (err: any) {
+      logger.error({ correlation_id: correlationId, err: err.message }, 'Failed to fetch performance report');
+      return res.status(502).json(
+        createErrorEnvelope('UPSTREAM_UNAVAILABLE', 'Failed to fetch performance reports', correlationId)
+      );
+    }
+  }
+);
+
+// Fallback 404 handler
+app.use((req: Request, res: Response) => {
+  const correlationId = getCorrelationId(req);
+  res.status(404).json(
+    createErrorEnvelope('NOT_FOUND', `Route '${req.method} ${req.originalUrl || req.url}' not found`, correlationId)
+  );
 });
 
-app.get('/api/v1/ui/reports/placement-performance', async (req: Request, res: Response) => {
-  const correlationId = (req as any).correlationId;
-  try {
-    const [cRes, aRes, bRes] = await Promise.allSettled([
-      fetch(`${TEAM_C_URL}/api/v1/reports/placement-performance`, { headers: { 'X-Correlation-ID': correlationId } }),
-      fetch(`${TEAM_A_URL}/api/v1/metrics/eligibility`, { headers: { 'X-Correlation-ID': correlationId } }),
-      fetch(`${TEAM_B_URL}/api/v1/metrics/ranking`, { headers: { 'X-Correlation-ID': correlationId } })
-    ]);
-
-    const placement_report = cRes.status === 'fulfilled' && cRes.value.ok ? (await cRes.value.json() as any).data : {};
-    const eligibility_metrics = aRes.status === 'fulfilled' && aRes.value.ok ? (await aRes.value.json() as any).data : {};
-    const ranking_metrics = bRes.status === 'fulfilled' && bRes.value.ok ? (await bRes.value.json() as any).data : {};
-
-    return res.status(200).json({
-      data: {
-        placement_report,
-        eligibility_metrics,
-        ranking_metrics
-      },
-      meta: {
-        correlation_id: correlationId,
-        api_version: 'v1'
-      }
-    });
-  } catch (err: any) {
-    return res.status(503).json({
-      error: { code: 'SERVICE_UNAVAILABLE', message: 'Failed to aggregate reports' },
-      meta: { correlation_id: correlationId }
-    });
-  }
+// Central error handler
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  const correlationId = getCorrelationId(req);
+  logger.error({ correlation_id: correlationId, err: err.message, stack: err.stack }, 'Unhandled error in BFF');
+  res.status(500).json(
+    createErrorEnvelope('INTERNAL_ERROR', 'Internal server error', correlationId)
+  );
 });
 
-// Direct proxies for team test harnesses and backwards compatibility
-app.use('/api/v1/eligibility', createProxyMiddleware({ target: TEAM_A_URL, changeOrigin: true }));
-app.use('/api/v1/queues', createProxyMiddleware({ target: TEAM_A_URL, changeOrigin: true }));
-app.use('/api/v1/rankings', createProxyMiddleware({ target: TEAM_B_URL, changeOrigin: true }));
-app.use('/api/v1/profiles', createProxyMiddleware({ target: TEAM_B_URL, changeOrigin: true }));
-app.use('/api/v1/analytics', createProxyMiddleware({ target: TEAM_B_URL, changeOrigin: true }));
-app.use('/api/v1/students', createProxyMiddleware({ target: TEAM_C_URL, changeOrigin: true }));
-app.use('/api/v1/drives', createProxyMiddleware({ target: TEAM_C_URL, changeOrigin: true }));
-app.use('/api/v1/applications', createProxyMiddleware({ target: TEAM_C_URL, changeOrigin: true }));
-app.use('/api/v1/offers', createProxyMiddleware({ target: TEAM_C_URL, changeOrigin: true }));
-app.use('/internal/v1/outbox/stream', createProxyMiddleware({ target: TEAM_C_URL, changeOrigin: true }));
+export function startBffServer(port: number = config.BFF_PORT) {
+  return app.listen(port, () => {
+    logger.info(`ApniLeap BFF server running on port ${port} [env: ${config.NODE_ENV}]`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`Team D BFF Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test' && !process.env.npm_lifecycle_event?.includes('test')) {
+  startBffServer();
+}

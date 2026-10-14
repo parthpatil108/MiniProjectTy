@@ -104,6 +104,23 @@ describe('M3 — Master Data CRUD Contract Tests (Supertest)', () => {
     expect(resNotFound.body.error.code).toBe('NOT_FOUND');
   });
 
+  test('PATCH /internal/v1/drives/{driveId} rejects unauthenticated request with 401', async () => {
+    const service = new MasterDataService();
+    const drive = await service.createDrive({
+      company: 'SecCorp',
+      criteria: { min_cgpa: 6.0, max_backlogs: 0, allowed_branches: ['CSE'], min_attendance: 75.0, required_skill_tags: [] },
+      seats: 5,
+      package: '8 LPA',
+    });
+
+    const res = await request(app)
+      .patch(`/internal/v1/drives/${drive.drive_id}`)
+      .send({ expectedVersion: 1, seats: 4 });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('UNAUTHORIZED');
+  });
+
   test('PATCH /internal/v1/drives/{driveId} updates drive with optimistic version check', async () => {
     const service = new MasterDataService();
     const drive = await service.createDrive({
@@ -122,6 +139,7 @@ describe('M3 — Master Data CRUD Contract Tests (Supertest)', () => {
     // Update with correct expectedVersion = 1
     const resUpdate = await request(app)
       .patch(`/internal/v1/drives/${drive.drive_id}`)
+      .set('X-Service-Token', 'internal-service-auth-key-2026-secure')
       .send({
         expectedVersion: 1,
         seats: 8,
@@ -135,6 +153,7 @@ describe('M3 — Master Data CRUD Contract Tests (Supertest)', () => {
     // Stale expectedVersion = 1 returns VERSION_MISMATCH (409)
     const resMismatch = await request(app)
       .patch(`/internal/v1/drives/${drive.drive_id}`)
+      .set('X-Service-Token', 'internal-service-auth-key-2026-secure')
       .send({
         expectedVersion: 1,
         seats: 5,

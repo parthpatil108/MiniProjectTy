@@ -16,8 +16,11 @@
     "test:integration": "jest test/integration"
   },
   "dependencies": {
+    "@apnileap/common": "*",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

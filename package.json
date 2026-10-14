@@ -26,7 +26,7 @@
     "test:c": "npm run test --workspace=@apnileap/data-engine",
     "test:d": "npm run test --workspace=@apnileap/bff",
     "test:unit": "npm run test:a && npm run test:b && npm run test:c && npm run test:d",
-    "test:integration": "npx tsx --test tests/integration/integration.test.ts",
+    "test:integration": "tsx --test --import ./tests/integration/setup.ts tests/integration/integration.test.ts",
     "test:e2e": "npm run test:integration",
     "test:playwright": "npx playwright test",
     "test:kpi": "npx tsx tests/kpi/generate-kpi-evidence.ts",
