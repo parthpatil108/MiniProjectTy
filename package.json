@@ -1,51 +1,42 @@
 {
-  "name": "miniprojectty",
+  "name": "apnileap-monorepo",
   "version": "1.0.0",
-  "description": "This repository contains the campus placement management system built by four teams working together through a shared contract and API model.",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "private": true,
+  "description": "ApniLeap — Rule-Driven Campus Placement Eligibility and Analytics Platform",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
   "scripts": {
-    "install:all": "npm install && npm install --prefix team-a && npm install --prefix team-b && npm install --prefix team-c && npm install --prefix team-d",
-    "build:all": "npm run build --prefix team-a && npm run build --prefix team-b && npm run build --prefix team-c && npm run build --prefix team-d",
-    "dev:a": "npm run dev --prefix team-a",
-    "dev:b": "npm run dev --prefix team-b",
-    "dev:c": "npm run dev --prefix team-c",
-    "dev:d": "npm run dev --prefix team-d",
-    "dev:all": "concurrently \"npm run dev:a\" \"npm run dev:b\" \"npm run dev:c\" \"npm run dev:d\"",
-    "seed": "npm run seed --prefix team-c",
-    "test:a": "npm run test --prefix team-a",
-    "test:b": "npm run test --prefix team-b",
-    "test:c": "npm run test --prefix team-c",
-    "test:d": "npm run test --prefix team-d",
-    "test:e2e": "npx tsx --test e2e/integration.test.ts",
+    "build": "npm run build --workspaces --if-present",
+    "build:all": "npm run build",
+    "dev:a": "npm run dev --workspace=@apnileap/eligibility",
+    "dev:b": "npm run dev --workspace=@apnileap/ranking",
+    "dev:c": "npm run dev --workspace=@apnileap/data-engine",
+    "dev:bff": "npm run dev --workspace=@apnileap/bff",
+    "dev:web": "npm run dev --workspace=@apnileap/web",
+    "dev": "concurrently \"npm run dev:a\" \"npm run dev:b\" \"npm run dev:c\" \"npm run dev:bff\" \"npm run dev:web\"",
+    "dev:all": "npm run dev",
+    "start": "concurrently \"npm run start --workspace=@apnileap/eligibility\" \"npm run start --workspace=@apnileap/ranking\" \"npm run start --workspace=@apnileap/data-engine\" \"npm run start --workspace=@apnileap/bff\"",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "seed": "npm run seed --workspace=@apnileap/data-engine",
+    "test:a": "npm run test --workspace=@apnileap/eligibility",
+    "test:b": "npm run test --workspace=@apnileap/ranking",
+    "test:c": "npm run test --workspace=@apnileap/data-engine",
+    "test:d": "npm run test --workspace=@apnileap/bff",
+    "test:unit": "npm run test:a && npm run test:b && npm run test:c && npm run test:d",
+    "test:integration": "npx tsx --test tests/integration/integration.test.ts",
+    "test:e2e": "npm run test:integration",
     "test:playwright": "npx playwright test",
-    "test:kpi": "npx tsx scripts/generate-kpi-evidence.ts",
-    "test:all": "npm run test:a && npm run test:b && npm run test:c && npm run test:d && npm run test:e2e && npm run test:playwright && npm run test:kpi",
+    "test:kpi": "npx tsx tests/kpi/generate-kpi-evidence.ts",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:playwright && npm run test:kpi",
     "test": "npm run test:all"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/parthpatil108/MiniProjectTy.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/parthpatil108/MiniProjectTy/issues"
-  },
-  "homepage": "https://github.com/parthpatil108/MiniProjectTy#readme",
   "devDependencies": {
-    "@playwright/test": "^1.64.0",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "concurrently": "^10.0.5",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "playwright": "^1.64.0"
+    "@playwright/test": "^1.47.0",
+    "concurrently": "^8.2.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
   }
 }

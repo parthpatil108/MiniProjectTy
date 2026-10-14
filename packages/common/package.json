@@ -1,0 +1,17 @@
+{
+  "name": "@apnileap/common",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared envelope helpers, error codes, and utilities for ApniLeap",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.5.4"
+  }
+}

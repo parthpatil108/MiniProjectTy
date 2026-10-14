@@ -1,0 +1,27 @@
+{
+  "name": "@apnileap/ranking",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ApniLeap Ranking and Shortlisting Analytics Engine",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test": "tsx --test test/b1Graph.test.ts test/b2Ranking.test.ts test/b3Index.test.ts test/b4Analytics.test.ts test/contract.test.ts"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.0.0",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.6",
+    "express": "^5.2.1",
+    "uuid": "^10.0.0"
+  }
+}

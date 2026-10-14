@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
   testMatch: /.*\.spec\.ts/,
   timeout: 30000,
   expect: {
@@ -22,7 +22,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev:ui --prefix team-d',
+    command: 'npm run dev --prefix apps/web',
     url: 'http://localhost:5173',
     reuseExistingServer: true,
     timeout: 30000,
