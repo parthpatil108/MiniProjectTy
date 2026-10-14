@@ -38,11 +38,10 @@ export interface DriveUpdateInput {
   state?: 'DRAFT' | 'OPEN' | 'CLOSED' | 'ARCHIVED';
 }
 
-const TEAM_B_URL = process.env.TEAM_B_URL || 'http://localhost:3002';
-
 async function syncStudentToTeamB(student: any, correlationId?: string): Promise<void> {
+  const teamBUrl = process.env.TEAM_B_URL || 'http://localhost:3002';
   try {
-    await fetch(`${TEAM_B_URL}/internal/v1/profiles/students/${student.student_id}`, {
+    await fetch(`${teamBUrl}/internal/v1/profiles/students/${student.student_id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -56,8 +55,9 @@ async function syncStudentToTeamB(student: any, correlationId?: string): Promise
 }
 
 async function syncDriveToTeamB(drive: any, correlationId?: string): Promise<void> {
+  const teamBUrl = process.env.TEAM_B_URL || 'http://localhost:3002';
   try {
-    await fetch(`${TEAM_B_URL}/internal/v1/profiles/drives/${drive.drive_id}`, {
+    await fetch(`${teamBUrl}/internal/v1/profiles/drives/${drive.drive_id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -69,6 +69,7 @@ async function syncDriveToTeamB(drive: any, correlationId?: string): Promise<voi
     console.warn(`[Team C -> Team B sync] Failed to sync drive ${drive.drive_id}:`, err.message);
   }
 }
+
 
 export class MasterDataService {
   private customTxnManager?: TransactionManager;

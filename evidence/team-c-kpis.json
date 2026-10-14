@@ -1,0 +1,50 @@
+{
+  "category": "Team C",
+  "kpis": [
+    {
+      "kpi_id": "C-KPI-01",
+      "category": "Team C",
+      "name": "Transaction integrity (ACID)",
+      "target": "100% ACID test cases pass at documented isolation level",
+      "measured": "100% (Commit persisted, Rollback discarded)",
+      "status": "PASS",
+      "details": "Strict 2-Phase Locking with WAL journal and undo recovery."
+    },
+    {
+      "kpi_id": "C-KPI-02",
+      "category": "Team C",
+      "name": "Application safety & idempotency",
+      "target": "0 duplicate applications in concurrent creation attempts",
+      "measured": "Exactly 1 record created out of 100 attempts (duplicates: 0)",
+      "status": "PASS",
+      "details": "Hash index uniqueness constraint ensures single insertion per key."
+    },
+    {
+      "kpi_id": "C-KPI-03",
+      "category": "Team C",
+      "name": "Query performance",
+      "target": "p95 <= 200 ms for agreed drive and application queries",
+      "measured": "p95 = 0.001 ms (avg = 0.001 ms)",
+      "status": "PASS",
+      "details": "Hand-built B+Tree and Hash indices accelerate range and point lookups."
+    },
+    {
+      "kpi_id": "C-KPI-04",
+      "category": "Team C",
+      "name": "Audit coverage",
+      "target": "100% transitions have actor, time, before/after, and correlation_id",
+      "measured": "100% audit attributes verified",
+      "status": "PASS",
+      "details": "Append-only audit log in custom storage tracks all mutation lifecycle events."
+    },
+    {
+      "kpi_id": "C-KPI-05",
+      "category": "Team C",
+      "name": "Crash Recovery RTO / RPO",
+      "target": "RPO <= 5 minutes, RTO <= 30 minutes",
+      "measured": "RPO = 0s (no data loss); RTO = < 1s (instantaneous WAL replay)",
+      "status": "PASS",
+      "details": "WAL Redo-phase committed transactions; Undo-phase rolled back in-flight transactions."
+    }
+  ]
+}

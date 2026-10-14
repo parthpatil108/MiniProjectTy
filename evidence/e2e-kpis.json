@@ -1,0 +1,32 @@
+{
+  "category": "Cross-Team E2E",
+  "kpis": [
+    {
+      "kpi_id": "E2E-KPI-01",
+      "category": "Cross-Team E2E",
+      "name": "Workflow correctness",
+      "target": "100% expected transitions; 0 illegal transitions",
+      "measured": "100% (Illegal APPLIED->OFFER_ISSUED rejected; SELECTED->OFFER_ISSUED permitted)",
+      "status": "PASS",
+      "details": "State machine enforced exclusively by Team C per docs/01 §1.4."
+    },
+    {
+      "kpi_id": "E2E-KPI-02",
+      "category": "Cross-Team E2E",
+      "name": "Traceability & Correlation ID",
+      "target": "100% calls searchable by correlation_id across all hops",
+      "measured": "100% verified across Team D -> Team C -> Team A -> Team B",
+      "status": "PASS",
+      "details": "X-Correlation-ID preserved through headers, envelopes, and audit log entries."
+    },
+    {
+      "kpi_id": "E2E-KPI-03",
+      "category": "Cross-Team E2E",
+      "name": "Security & Role Authorization",
+      "target": "0 unauthorized actions; sensitive APIs require auth",
+      "measured": "0 unauthorized role actions permitted; 401 & 403 enforced on protected routes",
+      "status": "PASS",
+      "details": "Signed JWT auth with role claims (Student, Faculty_TPO, Placement_Admin)."
+    }
+  ]
+}

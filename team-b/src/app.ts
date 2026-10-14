@@ -34,12 +34,17 @@ export function createApp(
 
   app.post('/api/v1/rankings/compute', (req, res) => {
     try {
-      const result = rankingService.computeRanking(req.body);
+      const options = {
+        ...req.body,
+        driveId: req.body.driveId || req.body.drive_id,
+      };
+      const result = rankingService.computeRanking(options);
       res.status(200).json(success(result, (req as any).correlationId));
     } catch (e: any) {
       res.status(400).json(failure('VALIDATION_ERROR', e.message, (req as any).correlationId));
     }
   });
+
 
   app.get('/api/v1/rankings/:rankingId', (req, res) => {
     try {

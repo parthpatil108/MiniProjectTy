@@ -900,3 +900,672 @@ body { background: #f8fafc; color: #1e293b; }
 .status-pill, .live-indicator { background: #e9faf5; color: #187a59; }.status-warning { background: #fff5df; color: #94621b; }.status-tag { background: #f1f2ff; color: #5b5ce2; }.eligible-result { background: #e9faf5; border-color: #b9eadb; color: #187a59; }.ineligible-result { background: #fff0f0; border-color: #f0c4c4; color: #b83d3d; }.inline-error { background: #fff0f0; border-color: #f0c4c4; color: #b83d3d; }.success-banner { background: #e9faf5; border-color: #b9eadb; color: #187a59; }
 .readiness-bar { background: #ececff; }.readiness-bar i { background: linear-gradient(90deg, #5b5ce2, #2bbfa3); }.journey-step.done span { background: #2bbfa3; border-color: #2bbfa3; }.journey-step.current span { border-color: #8b8deb; color: #5b5ce2; }.journey-step.current { color: #5b5ce2; }.recommended-list b, .eligible { color: #187a59; }.company-mark { background: #5b5ce2; }.amazon-mark { background: #8b8deb; }.next-step { background: #f1f2ff; border-color: #8b8deb; }.next-step small, .news-list i, .quick-actions span { color: #5b5ce2; }.quick-actions button, .recommended-list button, .event-row { background: #f8fafc; border-color: #e8ecf3; }.quick-actions button:hover, .recommended-list button:hover, .event-row:hover { border-color: #8b8deb; background: #f1f2ff; }
 .analytics-tabs button.active { border-color: #5b5ce2; color: #5b5ce2; }.analytics-filter span { color: #64748b; }.funnel-stage > div { background: #5b5ce2; }.funnel-stage:nth-child(2n) > div { background: #8b8deb; }.funnel-stage:nth-child(3n) > div { background: #2bbfa3; }.bar-row i, .analytics-bars i { background: #5b5ce2; }.applications-bar, .legend-applications { background: #8b8deb; }.shortlisted-bar, .legend-shortlisted { background: #2bbfa3; }.selected-bar, .legend-selected { background: #5b5ce2; }.insight-list p { border-color: #8b8deb; color: #64748b; }.insights-panel h3 { color: #1e293b; }.analytics-actions .status-pill { color: #5b5ce2; background: #f1f2ff; }
+
+/* ==========================================================================
+   Table & Data Grid System
+   ========================================================================== */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  margin-top: 1rem;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.data-table thead th {
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 0.9rem 1.15rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.data-table tbody td {
+  padding: 0.95rem 1.15rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: #f8faff;
+}
+
+.data-table tr.current-row {
+  background: #f1f2ff;
+}
+
+.data-table td strong {
+  display: block;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.data-table td small {
+  display: block;
+  color: #64748b;
+  font-size: 0.76rem;
+  margin-top: 0.2rem;
+}
+
+/* ==========================================================================
+   Rankings & Shortlists
+   ========================================================================== */
+.ranking-controls-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 1.1rem;
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.algorithm-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.algorithm-tabs button {
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.algorithm-tabs button strong {
+  display: block;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+.algorithm-tabs button small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.algorithm-tabs button.active {
+  background: #f1f2ff;
+  border-color: #5b5ce2;
+}
+
+.algorithm-tabs button.active strong {
+  color: #5b5ce2;
+}
+
+.ranking-kpi-summary {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.ranking-kpi-summary > div {
+  padding: 0.5rem 0.85rem;
+  border-left: 2px solid #5b5ce2;
+  background: #f8fafc;
+  border-radius: 0 6px 6px 0;
+}
+
+.ranking-kpi-summary small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.ranking-kpi-summary strong {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--text);
+  margin-top: 0.15rem;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.82rem;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.rank-badge.gold {
+  background: #fef3c7;
+  color: #92400e;
+  box-shadow: 0 0 0 2px #f59e0b;
+}
+
+.rank-badge.silver {
+  background: #e2e8f0;
+  color: #334155;
+  box-shadow: 0 0 0 2px #94a3b8;
+}
+
+.rank-badge.bronze {
+  background: #ffedd5;
+  color: #9a3412;
+  box-shadow: 0 0 0 2px #f97316;
+}
+
+.current-user-pill {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.45rem;
+  background: #5b5ce2;
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.skill-match-tag {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  background: #e9faf5;
+  color: #187a59;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+/* ==========================================================================
+   Candidate Pipeline & Stepper
+   ========================================================================== */
+.pipeline-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.pipeline-stat-pill {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.2s ease;
+}
+
+.pipeline-stat-pill:hover {
+  border-color: #5b5ce2;
+  background: #f8faff;
+}
+
+.pipeline-stat-pill small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.pipeline-stat-pill strong {
+  display: block;
+  font-size: 1.45rem;
+  color: var(--text);
+  margin-top: 0.25rem;
+}
+
+.lifecycle-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+
+.lifecycle-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 75px;
+}
+
+.step-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.step-done .step-circle {
+  background: #2bbfa3;
+  color: #ffffff;
+}
+
+.step-active .step-circle {
+  background: #5b5ce2;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(91, 92, 226, 0.25);
+}
+
+.lifecycle-step small {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.step-active small {
+  color: #5b5ce2;
+  font-weight: 600;
+}
+
+.application-timeline-panel {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.audit-note {
+  background: #f1f2ff;
+  border-left: 3px solid #5b5ce2;
+  border-radius: 4px;
+  padding: 0.85rem 1rem;
+  font-size: 0.82rem;
+}
+
+.audit-note p {
+  margin: 0.2rem 0;
+  color: var(--text);
+}
+
+.audit-note small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+/* ==========================================================================
+   Drives Enhancements
+   ========================================================================== */
+.drives-tabs-row {
+  margin-bottom: 1rem;
+}
+
+.segmented-control {
+  display: inline-flex;
+  background: #e8ecf3;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 3px;
+}
+
+.segmented-control button {
+  border: 0;
+  background: transparent;
+  padding: 0.5rem 0.95rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #64748b;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.segmented-control button.active {
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.drive-role-subtitle {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.drive-meta-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  background: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin: 0.85rem 0;
+}
+
+.drive-meta-stats small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.drive-meta-stats strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #1e293b;
+  margin-top: 0.15rem;
+}
+
+.drive-card-branches {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.drive-card-branches span {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.drive-card-skills, .skills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.skill-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  background: #f1f2ff;
+  color: #5b5ce2;
+  border-radius: 4px;
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+.drive-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.drive-card-footer small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.drive-skills-section, .resume-section {
+  margin: 1rem 0;
+}
+
+.drive-skills-section strong {
+  display: block;
+  font-size: 0.84rem;
+  margin-bottom: 0.4rem;
+}
+
+/* ==========================================================================
+   Admin Operations Console
+   ========================================================================== */
+.admin-section-block {
+  margin: 1.5rem 0;
+}
+
+.admin-grid-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.deadlock-report-box {
+  background: #e9faf5;
+  border: 1px solid #b9eadb;
+  border-radius: 6px;
+  padding: 0.85rem;
+  margin-top: 0.85rem;
+  font-size: 0.82rem;
+}
+
+.deadlock-report-box small {
+  display: block;
+  font-weight: 700;
+  color: #187a59;
+}
+
+.deadlock-report-box p {
+  margin: 0.25rem 0 0;
+  color: #187a59;
+}
+
+/* ==========================================================================
+   Profile Styles
+   ========================================================================== */
+.profile-meta h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.profile-meta p {
+  margin: 0.15rem 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.profile-tag-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.profile-details-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.65rem;
+  font-size: 0.86rem;
+}
+
+.profile-details-list li {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 0.45rem;
+}
+
+.profile-details-list span {
+  color: var(--muted);
+}
+
+.profile-skills-chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.85rem 0;
+}
+
+.profile-skill-pill {
+  padding: 0.3rem 0.65rem;
+  gap: 0.35rem;
+}
+
+.skill-remove-btn {
+  background: transparent;
+  border: 0;
+  color: #5b5ce2;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.skill-remove-btn:hover {
+  color: #ef7f5d;
+}
+
+.add-skill-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+/* ==========================================================================
+   Live Notification Drawer
+   ========================================================================== */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+.notification-drawer {
+  width: min(100vw, 420px);
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -8px 0 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  animation: slideLeft 0.25s ease;
+}
+
+.drawer-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drawer-header h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.drawer-close {
+  background: transparent;
+  border: 0;
+  font-size: 1.6rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.drawer-toolbar {
+  padding: 0.65rem 1.5rem;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
+}
+
+.drawer-event-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.drawer-event-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+}
+
+.drawer-event-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #5b5ce2;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.drawer-event-body p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+.drawer-event-body small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+/* ==========================================================================
+   Command Palette Enhancements
+   ========================================================================== */
+.command-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.command-icon {
+  font-size: 1.1rem;
+  color: #5b5ce2;
+}
+
+.command-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideLeft {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+

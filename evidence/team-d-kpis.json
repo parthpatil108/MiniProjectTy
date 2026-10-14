@@ -1,0 +1,23 @@
+{
+  "category": "Team D",
+  "kpis": [
+    {
+      "kpi_id": "D-KPI-01",
+      "category": "Team D",
+      "name": "Accessibility & Keyboard Navigation",
+      "target": "100% critical flows keyboard-operable; responsive layout",
+      "measured": "100% critical flows operable via Tab/Enter; mobile & desktop verified in Playwright",
+      "status": "PASS",
+      "details": "5/5 Playwright E2E browser tests passed covering student login, drives, search, modal, admin controls."
+    },
+    {
+      "kpi_id": "D-KPI-02",
+      "category": "Team D",
+      "name": "Error handling & resilience",
+      "target": "100% backend error classes map to clear user feedback",
+      "measured": "100% mapped (VALIDATION_ERROR -> 400, UNAUTHORIZED -> 401, FORBIDDEN -> 403, NOT_FOUND -> 404, STATE_CONFLICT -> 409)",
+      "status": "PASS",
+      "details": "Standard error envelope parsed into user-friendly alerts."
+    }
+  ]
+}

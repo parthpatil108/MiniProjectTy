@@ -20,13 +20,11 @@ export interface CompensateOfferInput {
   reason: string;
 }
 
-const TEAM_A_URL = process.env.TEAM_A_URL || 'http://localhost:3001';
-
-
 async function releaseTeamALease(leaseId: string, correlationId?: string): Promise<void> {
   if (!leaseId) return;
+  const teamAUrl = process.env.TEAM_A_URL || 'http://localhost:3001';
   try {
-    await fetch(`${TEAM_A_URL}/internal/v1/locks/${leaseId}`, {
+    await fetch(`${teamAUrl}/internal/v1/locks/${leaseId}`, {
       method: 'DELETE',
       headers: correlationId ? { 'X-Correlation-ID': correlationId } : {},
     });
@@ -34,6 +32,7 @@ async function releaseTeamALease(leaseId: string, correlationId?: string): Promi
     console.warn(`[Team C -> Team A compensation] Failed to release lease ${leaseId}:`, err.message);
   }
 }
+
 
 export class OfferService {
 

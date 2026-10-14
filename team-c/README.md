@@ -1,32 +1,17 @@
 # Team C — Placement Data & Transaction Manager
 
-Team C provides the authoritative system of record and transaction manager for the placement platform. It is built in Node.js and TypeScript on a custom JSON-file database engine featuring a hand-written B+Tree index, custom hash index, write-ahead logging (WAL), strict two-phase locking (2PL) transaction manager, and atomic state machine enforcement.
+Authoritative System of Record and custom JSON-file DBMS Engine for the ApniLeap campus placement platform.
 
-## Installation & Running Locally
+## Responsibilities
+- **Master Data (C1):** 3NF normalized schema for students, drives, applications, and decisions. Auto-synchronizes profile updates to Team B.
+- **Application Transactions & Locking (C2):** ACID transactions, strict 2-Phase Locking (2PL), deadlock prevention, and hash index idempotency deduplication.
+- **Atomic Offer Commit & Compensation (C3):** Multi-record atomic commit (seat decrement + application state transition to `OFFER_ISSUED`) and automatic lease compensation on failure.
+- **Audit & Recovery (C4):** Append-only immutable audit trail; custom Write-Ahead Log (WAL) with instantaneous Redo/Undo crash recovery (RPO=0s, RTO<1s).
+- **Engine Internals:** 100% hand-built custom DBMS with B+Tree (splits & merges), Hash Index (own hash function, bucket chaining, auto-resize), and direct disk persistence. **Zero external DB/ORM packages.**
 
-To install dependencies, build TypeScript source, seed initial data, and run the server locally:
-
-```bash
-npm install
-npm run build
-npm run seed
-npm start
-```
-
-The server listens on port `3000` by default.
-
-## Running Tests
-
-To run all unit, contract, and integration tests:
-
-```bash
-npx jest
-```
-
-## Documentation
-
-Full architectural and database engine specifications for Team C are located in the repository [docs/](../docs/):
-- [02 — Team C Architecture](../docs/02-team-c-architecture.md)
-- [03 — Team C Custom Database Engine Design](../docs/03-team-c-database-engine-design.md)
-- [04 — Team C Implementation Plan](../docs/04-team-c-implementation-plan.md)
-- [Team C OpenAPI Contract](../shared/contracts/openapi/team-c.openapi.yaml)
+## Running the Service
+- **Default Port:** `3003`
+- **Seed Master Data:** `npm run seed`
+- **Start Service:** `npm run dev` or `npm start`
+- **Run Tests:** `npm test` (Runs 32 Jest unit, contract, and recovery tests)
+- **Health Check:** `GET http://localhost:3003/healthz`

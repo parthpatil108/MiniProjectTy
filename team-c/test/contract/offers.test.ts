@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import request from 'supertest';
+import http from 'http';
 import { app } from '../../src/app.js';
 import { StorageManager } from '../../src/storage/storageManager.js';
 import { TransactionManager } from '../../src/txn/transactionManager.js';
@@ -117,17 +118,16 @@ describe('C3/C4/C5 — Offers, Audit, Performance Reports & Recovery Verificatio
   });
 
   test('GET /internal/v1/outbox/stream returns event-stream', (done) => {
-    const req = request(app).get('/internal/v1/outbox/stream');
-    
-    req.expect(200)
-       .expect('Content-Type', /text\/event-stream/)
-       .end((err) => {
-         if (err) return done(err);
-       });
-       
-    setTimeout(() => {
-      req.abort();
-      done();
-    }, 200);
+    const server = app.listen(0, () => {
+      const addr = server.address() as any;
+      const clientReq = http.get(`http://localhost:${addr.port}/internal/v1/outbox/stream`, (res) => {
+        expect(res.statusCode).toBe(200);
+        expect(res.headers['content-type']).toContain('text/event-stream');
+        clientReq.destroy();
+        server.close(done);
+      });
+      clientReq.on('error', () => {});
+    });
   });
 });
+

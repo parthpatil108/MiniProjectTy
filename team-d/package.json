@@ -10,7 +10,9 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
     "start": "node server.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "tsx --test test/bff.test.ts"
+
   },
   "dependencies": {
     "cors": "^2.8.6",

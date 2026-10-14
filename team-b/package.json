@@ -16,7 +16,9 @@
     "test:b2": "npm run build && node --test dist/test/b2Ranking.test.js",
     "test:b3": "npm run build && node --test dist/test/b3Index.test.js",
     "test:b4": "npm run build && node --test dist/test/b4Analytics.test.js",
-    "test": "npm run build && node --test dist/test/b1Graph.test.js dist/test/b2Ranking.test.js dist/test/b3Index.test.js dist/test/b4Analytics.test.js"
+    "test:contract": "npm run build && node --test dist/test/contract.test.js",
+    "test": "npm run build && node --test dist/test/b1Graph.test.js dist/test/b2Ranking.test.js dist/test/b3Index.test.js dist/test/b4Analytics.test.js dist/test/contract.test.js"
+
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

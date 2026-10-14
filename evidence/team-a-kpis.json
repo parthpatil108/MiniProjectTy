@@ -1,0 +1,41 @@
+{
+  "category": "Team A",
+  "kpis": [
+    {
+      "kpi_id": "A-KPI-01",
+      "category": "Team A",
+      "name": "Rule-evaluation correctness",
+      "target": "100% match with reference decisions",
+      "measured": "100.0% (4/4)",
+      "status": "PASS",
+      "details": "Verified across SequentialAnd, WeightedPriority, and DecisionTree strategies."
+    },
+    {
+      "kpi_id": "A-KPI-02",
+      "category": "Team A",
+      "name": "Decision latency",
+      "target": "p95 <= 200 ms for 1,000 queued requests",
+      "measured": "p95 = 0.07 ms (avg = 0.04 ms)",
+      "status": "PASS",
+      "details": "1,000 requests enqueued and evaluated sequentially."
+    },
+    {
+      "kpi_id": "A-KPI-03",
+      "category": "Team A",
+      "name": "Slot allocation safety",
+      "target": "0 duplicate exclusive allocations",
+      "measured": "0 duplicates across 1,000 allocation attempts (10 slots x 100 attempts)",
+      "status": "PASS",
+      "details": "Verified strict mutual exclusion on exclusive slot leases."
+    },
+    {
+      "kpi_id": "A-KPI-04",
+      "category": "Team A",
+      "name": "Deadlock handling",
+      "target": "100% seeded cycles detected within 1 s",
+      "measured": "100% detected in 0.02 ms (cycle: T2 -> T3 -> T1)",
+      "status": "PASS",
+      "details": "Cycle detection via Depth First Search on Wait-For-Graph."
+    }
+  ]
+}

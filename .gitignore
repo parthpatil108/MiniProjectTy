@@ -4,4 +4,7 @@ team-c/dist/
 .env
 dist/
 *.log
+data/
+test-results/
+*.tsbuildinfo
 

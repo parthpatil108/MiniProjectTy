@@ -88,6 +88,7 @@ export type RankingAlgorithm = 'WEIGHTED_SCORE' | 'MERGE_SORT' | 'HEAP_TOPK';
 export interface RankingResult {
   ranking_id: string;
   ordered_candidates: RankedCandidate[];
+  shortlist?: RankedCandidate[];
   total_score: number;
   algorithm: RankingAlgorithm;
   graph_version: string;

@@ -35,6 +35,7 @@ export class RankingService {
     const ordered = mergeSortCandidates(scoredCandidates);
     const selected = algorithm === 'HEAP_TOPK' ? heapTopK(scoredCandidates, topK ?? scoredCandidates.length) : ordered;
     const orderedCandidates = selected.map((candidate, index) => ({ student_id: candidate.student_id, score: candidate.score, rank: index + 1 }));
-    return { ranking_id: createDeterministicRankingId(driveId ?? '', this.profileRegistry.graph_version, algorithm), ordered_candidates: orderedCandidates, total_score: orderedCandidates.reduce((sum, candidate) => sum + candidate.score, 0), algorithm, graph_version: this.profileRegistry.graph_version, tie_break_rule: TIE_BREAK_RULE, explored_candidate_count: evaluatedCandidates.length };
+    return { ranking_id: createDeterministicRankingId(driveId ?? '', this.profileRegistry.graph_version, algorithm), ordered_candidates: orderedCandidates, shortlist: orderedCandidates, total_score: orderedCandidates.reduce((sum, candidate) => sum + candidate.score, 0), algorithm, graph_version: this.profileRegistry.graph_version, tie_break_rule: TIE_BREAK_RULE, explored_candidate_count: evaluatedCandidates.length };
+
   }
 }

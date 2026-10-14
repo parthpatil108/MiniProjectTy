@@ -5,18 +5,21 @@ import { ApplicationsView } from './components/ApplicationsView';
 import { DrivesView } from './components/DrivesView';
 import { ReportsView } from './components/ReportsView';
 import { RankingsView } from './components/RankingsView';
-import { UpdatesView } from './components/UpdatesView';
 import { ProfileView } from './components/ProfileView';
 import { AdminActionsView } from './components/AdminActionsView';
-import { JourneyView } from './components/JourneyView';
-import { CalendarView } from './components/CalendarView';
-import { InterviewView } from './components/InterviewView';
-import { InboxView } from './components/InboxView';
 import { AnalyticsView } from './components/AnalyticsView';
-import { ActivityView } from './components/ActivityView';
 import { CommandPalette } from './components/CommandPalette';
-import { SavedDrivesView } from './components/SavedDrivesView';
-import { fetchDrives, login, logout, submitApplication, subscribeToLiveUpdates, updateDrive, type AuthSession, type LiveConnectionState } from './services/portalApi';
+import { NotificationDrawer } from './components/NotificationDrawer';
+import {
+  fetchDrives,
+  login,
+  logout,
+  submitApplication,
+  subscribeToLiveUpdates,
+  updateDrive,
+  type AuthSession,
+  type LiveConnectionState
+} from './services/portalApi';
 
 export type Role = 'Student' | 'Faculty_TPO' | 'Placement_Admin';
 
@@ -48,7 +51,6 @@ export type PlacementDrive = {
   backlogs: string;
   skills: string[];
   applied: boolean;
-  saved?: boolean;
 };
 
 export type DashboardData = {
@@ -57,32 +59,44 @@ export type DashboardData = {
   liveEvents: Array<{ id: number; text: string; time: string }>;
 };
 
-export type View = 'Dashboard' | 'Applications' | 'Drives' | 'SavedDrives' | 'Rankings' | 'Journey' | 'Calendar' | 'Interview' | 'Inbox' | 'Updates' | 'Analytics' | 'Reports' | 'Profile' | 'AdminActions' | 'Activity';
+export type View =
+  | 'Dashboard'
+  | 'Applications'
+  | 'Drives'
+  | 'Rankings'
+  | 'Analytics'
+  | 'Reports'
+  | 'Profile'
+  | 'AdminActions';
 
 const navigationByRole: Record<Role, Array<{ group: string; items: View[] }>> = {
   Student: [
     { group: 'Overview', items: ['Dashboard'] },
-    { group: 'Opportunities', items: ['Drives', 'SavedDrives'] },
-    { group: 'My placement', items: ['Applications', 'Rankings', 'Journey', 'Calendar'] },
-    { group: 'Communication', items: ['Inbox', 'Updates'] },
+    { group: 'Opportunities', items: ['Drives'] },
+    { group: 'My Placement', items: ['Applications', 'Rankings'] },
     { group: 'Account', items: ['Profile'] }
   ],
   Faculty_TPO: [
     { group: 'Overview', items: ['Dashboard'] },
-    { group: 'Operations', items: ['Drives', 'Applications', 'Calendar'] },
-    { group: 'Insights', items: ['Analytics', 'Reports'] },
-    { group: 'System', items: ['Updates', 'Activity'] }
+    { group: 'Operations', items: ['Drives', 'Applications'] },
+    { group: 'Insights & Merit', items: ['Rankings', 'Analytics', 'Reports'] }
   ],
   Placement_Admin: [
     { group: 'Overview', items: ['Dashboard'] },
-    { group: 'Management', items: ['Drives', 'Applications', 'AdminActions'] },
-    { group: 'Insights', items: ['Analytics', 'Reports'] },
-    { group: 'System', items: ['Activity', 'Updates'] }
+    { group: 'Management', items: ['Drives', 'AdminActions', 'Applications'] },
+    { group: 'Insights & Merit', items: ['Rankings', 'Analytics', 'Reports'] }
   ]
 };
 
 const viewLabels: Record<View, string> = {
-  Dashboard: 'Dashboard', Applications: 'Applications', Drives: 'Placement Drives', SavedDrives: 'Saved Drives', Rankings: 'Rankings', Journey: 'My Journey', Calendar: 'Calendar', Interview: 'Interview Workspace', Inbox: 'Inbox', Updates: 'Notifications', Analytics: 'Analytics', Reports: 'Reports', Profile: 'Profile', AdminActions: 'Drive Management', Activity: 'Activity'
+  Dashboard: 'Dashboard',
+  Drives: 'Placement Drives',
+  Applications: 'Applications',
+  Rankings: 'Rankings & Merit',
+  Analytics: 'Analytics',
+  Reports: 'Reports',
+  AdminActions: 'Drive Management',
+  Profile: 'Profile'
 };
 
 const statsByRole: Record<Role, Array<{ label: string; value: string; tone: string }>> = {
@@ -94,42 +108,86 @@ const statsByRole: Record<Role, Array<{ label: string; value: string; tone: stri
   Faculty_TPO: [
     { label: 'Eligible', value: '128', tone: 'blue' },
     { label: 'Placed', value: '96', tone: 'green' },
-    { label: 'Drives', value: '06', tone: 'purple' }
+    { label: 'Active Drives', value: '05', tone: 'purple' }
   ],
   Placement_Admin: [
-    { label: 'Open Drives', value: '08', tone: 'blue' },
-    { label: 'Offers', value: '42', tone: 'green' },
-    { label: 'Pending', value: '17', tone: 'purple' }
+    { label: 'Open Drives', value: '05', tone: 'blue' },
+    { label: 'Offers Issued', value: '42', tone: 'green' },
+    { label: 'Pending Review', value: '17', tone: 'purple' }
   ]
 };
 
-const applications: Application[] = [
-  { id: 'APP-1042', name: 'Neha R.', role: 'Software Engineer', status: 'Shortlisted', cgpa: '9.4', branch: 'CSE', score: '92%', queuePosition: 3, rank: 8, update: 'Interview slot confirmed for 29 Aug' },
-  { id: 'APP-1048', name: 'Aditya S.', role: 'Data Analyst', status: 'Interview', cgpa: '8.9', branch: 'IT', score: '88%', queuePosition: 6, rank: 14, update: 'Technical interview under review' },
-  { id: 'APP-1053', name: 'Kavya M.', role: 'Frontend Developer', status: 'Eligible', cgpa: '9.1', branch: 'ECE', score: '90%', queuePosition: 12, rank: 21, update: 'Awaiting shortlist announcement' },
-  { id: 'APP-1058', name: 'Rohan P.', role: 'QA Engineer', status: 'Applied', cgpa: '8.7', branch: 'EEE', score: '84%', queuePosition: 18, rank: 36, update: 'Application received by Placement Cell' }
+const initialApplications: Application[] = [
+  {
+    id: 'APP-1042',
+    name: 'Neha R.',
+    role: 'Software Engineer',
+    status: 'Shortlisted',
+    cgpa: '9.4',
+    branch: 'CSE',
+    score: '92%',
+    queuePosition: 3,
+    rank: 8,
+    update: 'Interview slot lease confirmed by Team A lock manager'
+  },
+  {
+    id: 'APP-1048',
+    name: 'Aditya S.',
+    role: 'Data Analyst',
+    status: 'Interview Scheduled',
+    cgpa: '8.9',
+    branch: 'IT',
+    score: '88%',
+    queuePosition: 6,
+    rank: 14,
+    update: 'Technical interview scheduled; slot lock lease acquired'
+  },
+  {
+    id: 'APP-1053',
+    name: 'Kavya M.',
+    role: 'Frontend Developer',
+    status: 'Screening',
+    cgpa: '9.1',
+    branch: 'ECE',
+    score: '90%',
+    queuePosition: 12,
+    rank: 21,
+    update: 'Team A eligibility rule chain passed; queued for ranking'
+  },
+  {
+    id: 'APP-1058',
+    name: 'Rohan P.',
+    role: 'QA Engineer',
+    status: 'Applied',
+    cgpa: '8.7',
+    branch: 'EEE',
+    score: '84%',
+    queuePosition: 18,
+    rank: 36,
+    update: 'Application received and written to Team C WAL journal'
+  }
 ];
 
 const initialDashboard: DashboardData = {
   stats: statsByRole.Student,
-  applications,
+  applications: initialApplications,
   liveEvents: [
-    { id: 1, text: 'Application APP-1042 moved to shortlisted', time: '2s ago' },
-    { id: 2, text: 'Drive update: Google interview slot confirmed', time: '11s ago' },
-    { id: 3, text: 'Eligibility results refreshed from Team A', time: '23s ago' },
-    { id: 4, text: 'Team C outbox stream received a new status event', time: '1m ago' }
+    { id: 1, text: 'Application APP-1042 moved to Shortlisted (Team B ranking)', time: '2s ago' },
+    { id: 2, text: 'Google interview slot lock lease acquired by Team A', time: '11s ago' },
+    { id: 3, text: 'Eligibility evaluated against rule chain: CGPA >= 8.5', time: '23s ago' },
+    { id: 4, text: 'Team C outbox stream: WAL commit checkpoint verified', time: '1m ago' }
   ]
 };
 
 export default function App() {
   const [session, setSession] = useState<UserSession | null>(() => {
-    const savedSession = sessionStorage.getItem('placify-session');
-    return savedSession ? JSON.parse(savedSession) as UserSession : null;
+    const saved = sessionStorage.getItem('placify-session');
+    return saved ? (JSON.parse(saved) as UserSession) : null;
   });
   const [selectedRole, setSelectedRole] = useState<Role>('Student');
   const [currentView, setCurrentView] = useState<View>('Dashboard');
   const [dashboard, setDashboard] = useState<DashboardData>(initialDashboard);
-  const [selectedAppId, setSelectedAppId] = useState<string>(applications[0].id);
+  const [selectedAppId, setSelectedAppId] = useState<string>(initialApplications[0].id);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [availableDrives, setAvailableDrives] = useState<PlacementDrive[]>([]);
@@ -137,10 +195,18 @@ export default function App() {
   const [driveError, setDriveError] = useState('');
   const [liveState, setLiveState] = useState<LiveConnectionState>('connected');
   const [globalSearch, setGlobalSearch] = useState('');
-  const [savedDriveIds, setSavedDriveIds] = useState<string[]>(() => JSON.parse(localStorage.getItem('placify-saved-drives') ?? '[]') as string[]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [savedDriveIds, setSavedDriveIds] = useState<string[]>(() => {
+    try {
+      return (JSON.parse(localStorage.getItem('placify-saved-drives') ?? '[]') as string[]) || [];
+    } catch {
+      return [];
+    }
+  });
 
   const stats = useMemo(() => dashboard.stats, [dashboard.stats]);
-  const selectedApplication = dashboard.applications.find((app) => app.id === selectedAppId) ?? dashboard.applications[0];
+  const selectedApplication =
+    dashboard.applications.find((app) => app.id === selectedAppId) ?? dashboard.applications[0];
 
   const loadDashboard = (role: Role) => {
     setIsLoading(true);
@@ -149,34 +215,45 @@ export default function App() {
     window.setTimeout(() => {
       const nextDashboard: DashboardData = {
         stats: statsByRole[role],
-        applications,
+        applications: initialApplications,
         liveEvents: [
-          { id: 1, text: `${role === 'Faculty_TPO' ? 'Faculty review' : 'Application'} APP-1042 moved to shortlisted`, time: '2s ago' },
-          { id: 2, text: 'Drive update: Google interview slot confirmed', time: '11s ago' },
-          { id: 3, text: 'Eligibility results refreshed from Team A', time: '23s ago' },
-          { id: 4, text: 'Team C outbox stream received a new status event', time: '1m ago' }
+          {
+            id: Date.now() - 2000,
+            text: `${role === 'Faculty_TPO' ? 'Faculty review' : 'Application'} APP-1042 moved to Shortlisted`,
+            time: '2s ago'
+          },
+          { id: Date.now() - 11000, text: 'Drive update: Google interview slot confirmed', time: '11s ago' },
+          { id: Date.now() - 23000, text: 'Eligibility results refreshed from Team A engine', time: '23s ago' },
+          { id: Date.now() - 60000, text: 'Team C outbox stream received new atomic commit', time: '1m ago' }
         ]
       };
 
       setDashboard(nextDashboard);
       setSelectedAppId(nextDashboard.applications[0].id);
       setIsLoading(false);
-    }, 700);
+    }, 180);
   };
 
   useEffect(() => {
     if (!session) return;
     loadDashboard(session.role);
     setIsDriveLoading(true);
-    fetchDrives().then(setAvailableDrives).catch(() => setDriveError('Unable to load placement drives. The drive service is temporarily unavailable.')).finally(() => setIsDriveLoading(false));
+    fetchDrives()
+      .then(setAvailableDrives)
+      .catch(() => setDriveError('Unable to load placement drives. The drive service is temporarily unavailable.'))
+      .finally(() => setIsDriveLoading(false));
   }, [session]);
 
   useEffect(() => {
     if (!session) return;
-    return subscribeToLiveUpdates((message) => setDashboard((currentDashboard) => ({
-      ...currentDashboard,
-      liveEvents: [{ id: Date.now(), text: message, time: 'just now' }, ...currentDashboard.liveEvents].slice(0, 5)
-    })), setLiveState);
+    return subscribeToLiveUpdates(
+      (message) =>
+        setDashboard((current) => ({
+          ...current,
+          liveEvents: [{ id: Date.now(), text: message, time: 'just now' }, ...current.liveEvents].slice(0, 10)
+        })),
+      setLiveState
+    );
   }, [session]);
 
   const handleLogin = async (email: string, password: string) => {
@@ -193,34 +270,44 @@ export default function App() {
     setIsLoading(false);
   };
 
-  const handleRetry = () => {
-    if (session) {
-      loadDashboard(session.role);
-    }
-  };
-
   const handleApply = async (driveId: string) => {
     const drive = availableDrives.find((item) => item.id === driveId);
     if (!drive) return;
-    const nextApplication = await submitApplication(drive, session?.name ?? 'Priya Sharma');
-    setAvailableDrives((currentDrives) => currentDrives.map((drive) => drive.id === driveId ? { ...drive, applied: true } : drive));
-    setDashboard((currentDashboard) => ({
-      ...currentDashboard,
-      applications: [nextApplication, ...currentDashboard.applications],
-      stats: currentDashboard.stats.map((stat) => stat.label === 'Applications' ? { ...stat, value: String(Number(stat.value) + 1).padStart(2, '0') } : stat),
-      liveEvents: [{ id: Date.now(), text: `Application submitted for ${drive.company}`, time: 'just now' }, ...currentDashboard.liveEvents]
+    const nextApp = await submitApplication(drive, session?.name ?? 'Priya Sharma');
+    setAvailableDrives((current) =>
+      current.map((d) => (d.id === driveId ? { ...d, applied: true } : d))
+    );
+    setDashboard((current) => ({
+      ...current,
+      applications: [nextApp, ...current.applications],
+      stats: current.stats.map((st) =>
+        st.label === 'Applications' ? { ...st, value: String(Number(st.value) + 1).padStart(2, '0') } : st
+      ),
+      liveEvents: [
+        { id: Date.now(), text: `Application submitted for ${drive.company} · Team C committed`, time: 'just now' },
+        ...current.liveEvents
+      ]
     }));
   };
 
   const handleDriveUpdate = async () => {
     const drive = availableDrives[0];
     if (!drive) return;
-    const updatedDrive = await updateDrive(drive.id, { status: drive.status === 'Open' ? 'Paused' : 'Open' });
-    setAvailableDrives((currentDrives) => currentDrives.map((item) => item.id === updatedDrive.id ? updatedDrive : item));
+    const nextStatus = drive.status === 'Open' ? 'Paused' : 'Open';
+    const updated = await updateDrive(drive.id, { status: nextStatus });
+    setAvailableDrives((current) =>
+      current.map((item) => (item.id === updated.id ? { ...item, status: nextStatus } : item))
+    );
   };
 
   const toggleSavedDrive = (driveId: string) => {
-    setSavedDriveIds((current) => { const next = current.includes(driveId) ? current.filter((id) => id !== driveId) : [...current, driveId]; localStorage.setItem('placify-saved-drives', JSON.stringify(next)); return next; });
+    setSavedDriveIds((current) => {
+      const next = current.includes(driveId)
+        ? current.filter((id) => id !== driveId)
+        : [...current, driveId];
+      localStorage.setItem('placify-saved-drives', JSON.stringify(next));
+      return next;
+    });
   };
 
   if (!session) {
@@ -238,8 +325,8 @@ export default function App() {
       <main className="loading-page">
         <div className="loading-card">
           <div className="spinner" />
-          <h2>Loading dashboard...</h2>
-          <p>Fetching aggregate data from Team A, Team B, and Team C.</p>
+          <h2>Loading placement portal...</h2>
+          <p>Connecting to Team A (OS Engine), Team B (Data Structures), and Team C (Custom DBMS)...</p>
         </div>
       </main>
     );
@@ -251,7 +338,9 @@ export default function App() {
         <div className="loading-card error-card">
           <h2>Unable to load dashboard</h2>
           <p>{apiError}</p>
-          <button type="button" className="primary-button" onClick={handleRetry}>Retry</button>
+          <button type="button" className="primary-button" onClick={() => loadDashboard(session.role)}>
+            Retry
+          </button>
         </div>
       </main>
     );
@@ -272,7 +361,33 @@ export default function App() {
           {navigationByRole[session.role].map((section) => (
             <div className="nav-section" key={section.group}>
               <span className="nav-label">{section.group}</span>
-              {section.items.map((view) => <button key={view} className={`nav-item ${currentView === view ? 'active' : ''}`} type="button" onClick={() => setCurrentView(view)}><span className="nav-glyph">{view === 'Dashboard' ? '⌂' : view === 'Drives' || view === 'SavedDrives' ? '▣' : view === 'Applications' ? '▤' : view === 'Analytics' || view === 'Reports' ? '◒' : view === 'Profile' ? '○' : '·'}</span>{viewLabels[view]}</button>)}
+              {section.items.map((view) => (
+                <button
+                  key={view}
+                  className={`nav-item ${currentView === view ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => setCurrentView(view)}
+                >
+                  <span className="nav-glyph">
+                    {view === 'Dashboard'
+                      ? '⌂'
+                      : view === 'Drives'
+                      ? '▣'
+                      : view === 'Applications'
+                      ? '▤'
+                      : view === 'Rankings'
+                      ? '◒'
+                      : view === 'Analytics'
+                      ? '📈'
+                      : view === 'Reports'
+                      ? '📄'
+                      : view === 'AdminActions'
+                      ? '⚙'
+                      : '○'}
+                  </span>
+                  {viewLabels[view]}
+                </button>
+              ))}
             </div>
           ))}
         </nav>
@@ -280,13 +395,63 @@ export default function App() {
         <div className="user-card">
           <p>Signed in as</p>
           <strong>{session.name}</strong>
-          <span>{session.role === 'Faculty_TPO' ? 'Faculty / TPO' : session.role === 'Placement_Admin' ? 'Placement Admin' : 'CSE · 4th Year'}</span>
-          <button type="button" onClick={handleLogout}>Log out</button>
+          <span>
+            {session.role === 'Faculty_TPO'
+              ? 'Faculty / TPO'
+              : session.role === 'Placement_Admin'
+              ? 'Placement Admin'
+              : 'CSE · 4th Year'}
+          </span>
+          <button type="button" onClick={handleLogout}>
+            Log out
+          </button>
         </div>
       </aside>
 
       <section className="content-panel">
-        <header className="global-header"><div className="global-brand"><strong>PLACIFY</strong><span>Campus Placement Intelligence · RIT Placement &amp; Career Cell</span></div><div className="global-tools"><label className="global-search"><span>⌕</span><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && globalSearch.trim()) setCurrentView('Drives'); }} placeholder="Search PLACIFY..." aria-label="Search PLACIFY" /></label><CommandPalette role={session.role} onNavigate={setCurrentView} /><button className="header-icon" type="button" onClick={() => setCurrentView(session.role === 'Student' ? 'Inbox' : 'Updates')} aria-label="Open notifications">♢</button><span className="header-user">{session.name.split(' ').map((part) => part[0]).join('')}</span></div></header>
+        <header className="global-header">
+          <div className="global-brand">
+            <strong>PLACIFY</strong>
+            <span>Campus Placement Intelligence · RIT Placement &amp; Career Cell</span>
+          </div>
+
+          <div className="global-tools">
+            <label className="global-search">
+              <span>⌕</span>
+              <input
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && globalSearch.trim()) {
+                    setCurrentView('Drives');
+                  }
+                }}
+                placeholder="Search placement drives..."
+                aria-label="Search PLACIFY"
+              />
+            </label>
+
+            <CommandPalette role={session.role} onNavigate={setCurrentView} />
+
+            <button
+              className="header-icon"
+              type="button"
+              onClick={() => setIsNotificationOpen(true)}
+              aria-label="Open notifications"
+              title="Live Stream Notices"
+            >
+              ♢
+            </button>
+
+            <span className="header-user">
+              {session.name
+                .split(' ')
+                .map((part) => part[0])
+                .join('')}
+            </span>
+          </div>
+        </header>
+
         {currentView === 'Dashboard' && (
           <DashboardView
             stats={stats}
@@ -298,6 +463,20 @@ export default function App() {
             liveState={liveState}
             role={session.role}
             onNavigate={setCurrentView}
+            onOpenNotifications={() => setIsNotificationOpen(true)}
+          />
+        )}
+
+        {currentView === 'Drives' && (
+          <DrivesView
+            drives={availableDrives}
+            studentCgpa={9.1}
+            studentBranch="CSE"
+            onApply={handleApply}
+            isLoading={isDriveLoading}
+            error={driveError}
+            savedDriveIds={savedDriveIds}
+            onToggleSaved={toggleSavedDrive}
           />
         )}
 
@@ -305,25 +484,27 @@ export default function App() {
           <ApplicationsView applications={dashboard.applications} />
         )}
 
-        {currentView === 'Drives' && (
-          <DrivesView drives={availableDrives} studentCgpa={9.1} studentBranch="CSE" onApply={handleApply} isLoading={isDriveLoading} error={driveError} savedDriveIds={savedDriveIds} onToggleSaved={toggleSavedDrive} />
-        )}
-        {currentView === 'SavedDrives' && <SavedDrivesView drives={availableDrives} savedDriveIds={savedDriveIds} onToggleSaved={toggleSavedDrive} onNavigate={setCurrentView} />}
-
         {currentView === 'Rankings' && <RankingsView />}
-        {currentView === 'Journey' && <JourneyView onNavigate={setCurrentView} />}
-        {currentView === 'Calendar' && <CalendarView role={session.role} onNavigate={setCurrentView} />}
-        {currentView === 'Interview' && <InterviewView />}
-        {currentView === 'Inbox' && <InboxView onNavigate={setCurrentView} />}
-        {currentView === 'Updates' && <UpdatesView />}
+
         {currentView === 'Analytics' && <AnalyticsView role={session.role} />}
-        {currentView === 'Activity' && <ActivityView />}
-        {currentView === 'Profile' && <ProfileView session={session} />}
-        {currentView === 'AdminActions' && session.role === 'Placement_Admin' && <AdminActionsView onUpdateDrive={handleDriveUpdate} />}
-        {currentView === 'Reports' && (
-          <ReportsView role={session.role} />
+
+        {currentView === 'Reports' && <ReportsView role={session.role} />}
+
+        {currentView === 'AdminActions' && (
+          <AdminActionsView onUpdateDrive={handleDriveUpdate} />
         )}
+
+        {currentView === 'Profile' && <ProfileView session={session} />}
       </section>
+
+      {/* Notification Slideout Drawer */}
+      <NotificationDrawer
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        events={dashboard.liveEvents}
+        liveState={liveState}
+        onClear={() => setDashboard((prev) => ({ ...prev, liveEvents: [] }))}
+      />
     </main>
   );
 }
