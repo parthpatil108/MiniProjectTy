@@ -31,8 +31,10 @@
     "test:playwright": "npx playwright test",
     "test:kpi": "npx tsx tests/kpi/generate-kpi-evidence.ts",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:playwright && npm run test:kpi",
-    "test": "npm run test:all"
+    "test": "npm run test:all",
+    "smoke": "tsx scripts/smoke.ts"
   },
+
   "devDependencies": {
     "@playwright/test": "^1.47.0",
     "concurrently": "^8.2.2",

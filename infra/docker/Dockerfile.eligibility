@@ -1,0 +1,33 @@
+# Stage 1: Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package*.json tsconfig.base.json ./
+COPY packages ./packages
+COPY services/eligibility ./services/eligibility
+
+RUN npm ci --workspace=@apnileap/common --workspace=@apnileap/eligibility
+RUN npm run build --workspace=@apnileap/common
+RUN npm run build --workspace=@apnileap/eligibility
+
+# Stage 2: Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package*.json ./
+COPY packages ./packages
+COPY services/eligibility/package.json ./services/eligibility/package.json
+
+RUN npm ci --omit=dev --workspace=@apnileap/common --workspace=@apnileap/eligibility
+
+COPY --from=builder /app/packages/common/dist ./packages/common/dist
+COPY --from=builder /app/services/eligibility/dist ./services/eligibility/dist
+
+USER node
+EXPOSE 3001
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/healthz || exit 1
+
+CMD ["node", "services/eligibility/dist/index.js"]

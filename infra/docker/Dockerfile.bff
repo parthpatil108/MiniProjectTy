@@ -1,0 +1,33 @@
+# Stage 1: Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package*.json tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/bff ./apps/bff
+
+RUN npm ci --workspace=@apnileap/common --workspace=@apnileap/bff
+RUN npm run build --workspace=@apnileap/common
+RUN npm run build --workspace=@apnileap/bff
+
+# Stage 2: Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package*.json ./
+COPY packages ./packages
+COPY apps/bff/package.json ./apps/bff/package.json
+
+RUN npm ci --omit=dev --workspace=@apnileap/common --workspace=@apnileap/bff
+
+COPY --from=builder /app/packages/common/dist ./packages/common/dist
+COPY --from=builder /app/apps/bff/dist ./apps/bff/dist
+
+USER node
+EXPOSE 3004
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3004/healthz || exit 1
+
+CMD ["node", "apps/bff/dist/server.js"]

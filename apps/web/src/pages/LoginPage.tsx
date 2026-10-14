@@ -114,7 +114,7 @@ export function LoginPage() {
             <button
               type="button"
               className="apni-demo-btn"
-              onClick={() => handleQuickLogin('student@apnileap.edu', 'validpass123')}
+              onClick={() => handleQuickLogin('student@apnileap.edu', 'demo123')}
             >
               <GraduationCap size={16} className="apni-demo-icon student" />
               <div className="apni-demo-btn__text">
@@ -126,7 +126,7 @@ export function LoginPage() {
             <button
               type="button"
               className="apni-demo-btn"
-              onClick={() => handleQuickLogin('tpo@apnileap.edu', 'tpopass123')}
+              onClick={() => handleQuickLogin('faculty@apnileap.edu', 'demo123')}
             >
               <User size={16} className="apni-demo-icon tpo" />
               <div className="apni-demo-btn__text">
@@ -138,7 +138,7 @@ export function LoginPage() {
             <button
               type="button"
               className="apni-demo-btn"
-              onClick={() => handleQuickLogin('admin@apnileap.edu', 'adminpass123')}
+              onClick={() => handleQuickLogin('admin@apnileap.edu', 'demo123')}
             >
               <Shield size={16} className="apni-demo-icon admin" />
               <div className="apni-demo-btn__text">
@@ -146,6 +146,7 @@ export function LoginPage() {
                 <span className="apni-demo-btn__name">Rhea Verma</span>
               </div>
             </button>
+
           </div>
         </div>
 

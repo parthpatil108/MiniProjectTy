@@ -1,0 +1,37 @@
+# Stage 1: Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package*.json tsconfig.base.json ./
+COPY packages ./packages
+COPY services/data-engine ./services/data-engine
+
+RUN npm ci --workspace=@apnileap/common --workspace=@apnileap/fixtures --workspace=@apnileap/data-engine
+RUN npm run build --workspace=@apnileap/common
+RUN npm run build --workspace=@apnileap/data-engine
+
+# Stage 2: Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV DATA_DIR=/data
+
+RUN mkdir -p /data && chown -R node:node /data
+
+COPY package*.json ./
+COPY packages ./packages
+COPY services/data-engine/package.json ./services/data-engine/package.json
+
+RUN npm ci --omit=dev --workspace=@apnileap/common --workspace=@apnileap/fixtures --workspace=@apnileap/data-engine
+
+COPY --from=builder /app/packages/common/dist ./packages/common/dist
+COPY --from=builder /app/services/data-engine/dist ./services/data-engine/dist
+
+VOLUME ["/data"]
+USER node
+EXPOSE 3003
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3003/healthz || exit 1
+
+CMD ["node", "services/data-engine/dist/server.js"]

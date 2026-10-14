@@ -1,0 +1,146 @@
+version: '3.8'
+
+services:
+  data-engine:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.data-engine
+    container_name: apnileap-data-engine-prod
+    expose:
+      - "3003"
+    environment:
+      - NODE_ENV=production
+      - DATA_ENGINE_PORT=3003
+      - DATA_DIR=/data
+      - JWT_SECRET=${JWT_SECRET}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - TEAM_A_URL=http://eligibility:3001
+      - TEAM_B_URL=http://ranking:3002
+      - SEED_ON_START=true
+    volumes:
+      - apnileap-prod-data:/data
+    networks:
+      - apnileap-prod-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3003/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  eligibility:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.eligibility
+    container_name: apnileap-eligibility-prod
+    expose:
+      - "3001"
+    environment:
+      - NODE_ENV=production
+      - ELIGIBILITY_PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - DATA_ENGINE_URL=http://data-engine:3003
+      - RANKING_URL=http://ranking:3002
+    depends_on:
+      data-engine:
+        condition: service_healthy
+    networks:
+      - apnileap-prod-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  ranking:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.ranking
+    container_name: apnileap-ranking-prod
+    expose:
+      - "3002"
+    environment:
+      - NODE_ENV=production
+      - RANKING_PORT=3002
+      - JWT_SECRET=${JWT_SECRET}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - DATA_ENGINE_URL=http://data-engine:3003
+      - ELIGIBILITY_URL=http://eligibility:3001
+    depends_on:
+      data-engine:
+        condition: service_healthy
+    networks:
+      - apnileap-prod-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  bff:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.bff
+    container_name: apnileap-bff-prod
+    expose:
+      - "3004"
+    environment:
+      - NODE_ENV=production
+      - BFF_PORT=3004
+      - JWT_SECRET=${JWT_SECRET}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - ELIGIBILITY_URL=http://eligibility:3001
+      - RANKING_URL=http://ranking:3002
+      - DATA_ENGINE_URL=http://data-engine:3003
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,https://apnileap.edu}
+    depends_on:
+      data-engine:
+        condition: service_healthy
+      eligibility:
+        condition: service_healthy
+      ranking:
+        condition: service_healthy
+    networks:
+      - apnileap-prod-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3004/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.web
+    container_name: apnileap-web-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      bff:
+        condition: service_healthy
+    networks:
+      - apnileap-prod-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+volumes:
+  apnileap-prod-data:
+    name: apnileap-prod-data-volume
+
+networks:
+  apnileap-prod-net:
+    driver: bridge

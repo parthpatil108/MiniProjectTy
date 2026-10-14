@@ -1,0 +1,74 @@
+name: ApniLeap CI Pipeline
+
+on:
+  push:
+    branches: [main, integration, 'release/**']
+  pull_request:
+    branches: [main, integration, 'release/**']
+
+jobs:
+  validate:
+    name: Build, Test & Verify Quality Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-jwt-secret-key-32-chars-long-2026
+      INTERNAL_SERVICE_SECRET: ci-internal-service-auth-key-2026-secure
+      ELIGIBILITY_URL: http://localhost:3001
+      RANKING_URL: http://localhost:3002
+      DATA_ENGINE_URL: http://localhost:3003
+      DATA_DIR: ./data-ci
+      SEED_ON_START: true
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Typecheck & Compile All Workspaces
+        run: npm run build
+
+      - name: Run Team A Unit & Contract Tests (Eligibility)
+        run: npm run test:a
+
+      - name: Run Team B Unit & Contract Tests (Ranking)
+        run: npm run test:b
+
+      - name: Run Team C Unit & Contract Tests (Data Engine DBMS)
+        run: npm run test:c
+
+      - name: Run Team D BFF Security & Auth Suite
+        run: npm run test:d
+
+      - name: Run Cross-Team System Integration Suite
+        run: npm run test:integration
+
+      - name: Run Performance KPI Evidence Verification
+        run: npm run test:kpi
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E Tests
+        run: npm run test:playwright
+
+      - name: Upload Test Evidence & Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-and-evidence
+          path: |
+            evidence/
+            test-results/
+            playwright-report/
+          retention-days: 14

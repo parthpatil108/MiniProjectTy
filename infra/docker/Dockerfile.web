@@ -1,0 +1,22 @@
+# Stage 1: Build Web App
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package*.json tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/web ./apps/web
+
+RUN npm ci --workspace=@apnileap/common --workspace=@apnileap/fixtures --workspace=@apnileap/web
+RUN npm run build --workspace=@apnileap/common
+RUN npm run build --workspace=@apnileap/web
+
+# Stage 2: Nginx Static Server
+FROM nginx:alpine
+COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+COPY infra/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
