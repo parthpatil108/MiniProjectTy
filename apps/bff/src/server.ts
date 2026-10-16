@@ -973,11 +973,14 @@ app.use((req: Request, res: Response) => {
 // Central error handler
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   const correlationId = getCorrelationId(req);
-  logger.error({ correlation_id: correlationId, err: err.message, stack: err.stack }, 'Unhandled error in BFF');
-  res.status(500).json(
-    createErrorEnvelope('INTERNAL_ERROR', 'Internal server error', correlationId)
+  const status = err.status || err.statusCode || 500;
+  logger.error({ correlation_id: correlationId, status, err: err.message, stack: err.stack }, 'Error in BFF');
+  const code = status === 400 ? 'VALIDATION_ERROR' : status === 404 ? 'NOT_FOUND' : 'INTERNAL_ERROR';
+  res.status(status).json(
+    createErrorEnvelope(code, err.message || 'Internal server error', correlationId)
   );
 });
+
 
 export function startBffServer(port: number = config.BFF_PORT) {
   return app.listen(port, () => {

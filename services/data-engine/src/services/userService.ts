@@ -130,8 +130,16 @@ export class UserService {
       role: UserRole;
     }> = [
       {
+        user_id: 'ADM-1000',
+        name: 'Parth Patil',
+        email: 'parthpatil@gmail.com',
+        password: 'demo123',
+        role: 'Placement_Admin',
+      },
+      {
         user_id: 'STU-1001',
         name: 'Rahul Sharma',
+
         email: 'student@apnileap.edu',
         password: 'demo123',
         role: 'Student',

@@ -109,14 +109,18 @@ export async function apiClient<T>(
 
   if (!response.ok) {
     const errorPayload = responseData?.error;
+    const defaultMsg = response.status === 500
+      ? 'Backend service (port 3004) is offline or unreachable. Please ensure all services are running via `npm run dev`.'
+      : `Request failed with status ${response.status}`;
     const apiError: ApiError = {
       code: errorPayload?.code || (response.status === 404 ? 'NOT_FOUND' : 'SERVER_ERROR'),
-      message: errorPayload?.message || `Request failed with status ${response.status}`,
+      message: errorPayload?.message || defaultMsg,
       details: errorPayload?.details,
       correlation_id: responseData?.meta?.correlation_id || correlationId,
       status: response.status
     };
     throw apiError;
+
   }
 
   // Return data payload from standard envelope if present, else raw

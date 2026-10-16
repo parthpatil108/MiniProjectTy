@@ -37,7 +37,15 @@ async function syncWithTeamC() {
     const drivesRes = await fetch(`${TEAM_C_URL}/api/v1/drives`);
     if (drivesRes.ok) {
       const { data } = await drivesRes.json();
-      data.forEach((drive: Drive) => registry.addOrUpdateDrive(drive));
+      data.forEach((drive: Drive) => {
+        try {
+          if (Array.isArray(drive?.criteria?.required_skill_tags) && drive.criteria.required_skill_tags.length > 0) {
+            registry.addOrUpdateDrive(drive);
+          }
+        } catch (e) {
+          console.warn(`Skipping drive ${drive?.drive_id}: ${(e as Error).message}`);
+        }
+      });
     }
     console.log('Synced with Team C successfully.');
   } catch (err) {

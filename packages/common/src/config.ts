@@ -63,11 +63,18 @@ export function loadConfig(envOverrides: Record<string, string | undefined> = {}
                    process.env.npm_lifecycle_event.includes('seed')
                  ));
 
-  if (isTest && env.NODE_ENV !== 'production') {
-    if (!env.NODE_ENV) env.NODE_ENV = 'test';
-    if (!env.JWT_SECRET) env.JWT_SECRET = 'apnileap-test-environment-jwt-secret-key-2026';
-    if (!env.INTERNAL_SERVICE_SECRET) env.INTERNAL_SERVICE_SECRET = 'internal-service-auth-key-2026-secure';
+  if (env.NODE_ENV !== 'production') {
+    if (!env.NODE_ENV) env.NODE_ENV = isTest ? 'test' : 'development';
+    if (!env.JWT_SECRET) {
+      env.JWT_SECRET = isTest
+        ? 'apnileap-test-environment-jwt-secret-key-2026'
+        : 'apnileap-dev-local-jwt-secret-key-32-chars-long-2026';
+    }
+    if (!env.INTERNAL_SERVICE_SECRET) {
+      env.INTERNAL_SERVICE_SECRET = 'internal-service-auth-key-2026-secure';
+    }
   }
+
   if (!env.ELIGIBILITY_URL && env.TEAM_A_URL) env.ELIGIBILITY_URL = env.TEAM_A_URL;
   if (!env.RANKING_URL && env.TEAM_B_URL) env.RANKING_URL = env.TEAM_B_URL;
   if (!env.DATA_ENGINE_URL && env.TEAM_C_URL) env.DATA_ENGINE_URL = env.TEAM_C_URL;
